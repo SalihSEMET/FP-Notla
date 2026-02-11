@@ -32,8 +32,14 @@ namespace Notla.Repository.Contexts
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+            modelBuilder.Entity<Note>()
+                .Property(n => n.Price)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.WalletBalance)
+                .HasColumnType("decimal(18,2)");
         }
     }
 }
