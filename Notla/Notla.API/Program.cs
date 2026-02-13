@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Notla.Repository.Contexts;
 using Notla.Core.Entities;
 using Microsoft.AspNetCore.Identity;
+using Notla.Core.UnitOfWork;
+using Notla.Repository.UnitOfWork;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(x =>
 {
@@ -27,6 +29,7 @@ builder.Services.AddIdentity<User, Role>(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
