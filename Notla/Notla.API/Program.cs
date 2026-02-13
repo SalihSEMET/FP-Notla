@@ -4,6 +4,8 @@ using Notla.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Notla.Core.UnitOfWork;
 using Notla.Repository.UnitOfWork;
+using Notla.Core.Services;
+using Notla.Service.Services;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(x =>
 {
@@ -30,6 +32,7 @@ builder.Services.AddIdentity<User, Role>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IService<>), typeof(Service<>));
 
 var app = builder.Build();
 
