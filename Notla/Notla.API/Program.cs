@@ -10,6 +10,7 @@ using System.Reflection;
 using Notla.Service.Mapping;
 using Notla.Core.Repositories;
 using Notla.Repository.Repositories;
+using AutoMapper;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -38,7 +39,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IService<>), typeof(Service<>));
-builder.Services.AddAutoMapper(typeof(MapProfile));
+builder.Services.AddAutoMapper(config =>
+{
+    config.AddProfile<MapProfile>();
+});
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddControllers();
 

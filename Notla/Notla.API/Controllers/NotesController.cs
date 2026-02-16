@@ -26,7 +26,7 @@ namespace Notla.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var note = _noteService.GetByIdAsync(id);
+            var note = await _noteService.GetByIdAsync(id);
             if (note == null)
             {
                 return NotFound();
