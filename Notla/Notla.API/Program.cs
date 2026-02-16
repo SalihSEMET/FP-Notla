@@ -6,6 +6,8 @@ using Notla.Core.UnitOfWork;
 using Notla.Repository.UnitOfWork;
 using Notla.Core.Services;
 using Notla.Service.Services;
+using System.Reflection;
+using Notla.Service.Mapping;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(x =>
 {
@@ -33,6 +35,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IService<>), typeof(Service<>));
+builder.Services.AddAutoMapper(typeof(MapProfile));
 
 var app = builder.Build();
 
