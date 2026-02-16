@@ -12,8 +12,8 @@ using Notla.Repository.Contexts;
 namespace Notla.Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260216144808_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260216160442_MakeDescriptionNullable")]
+    partial class MakeDescriptionNullable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -165,19 +165,17 @@ namespace Notla.Repository.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CoverImageUrl")
+                    b.Property<string>("Content")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FileUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
