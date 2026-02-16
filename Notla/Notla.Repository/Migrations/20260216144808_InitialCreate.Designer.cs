@@ -12,7 +12,7 @@ using Notla.Repository.Contexts;
 namespace Notla.Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260211201015_InitialCreate")]
+    [Migration("20260216144808_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

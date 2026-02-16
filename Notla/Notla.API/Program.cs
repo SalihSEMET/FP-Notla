@@ -8,12 +8,14 @@ using Notla.Core.Services;
 using Notla.Service.Services;
 using System.Reflection;
 using Notla.Service.Mapping;
+using Notla.Core.Repositories;
+using Notla.Repository.Repositories;
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<AppDbContext>(x =>
+builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    x.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"), option =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection"), sqlOptions =>
     {
-        option.MigrationsAssembly("Notla.Repository");
+        sqlOptions.MigrationsAssembly("Notla.Repository");
     });
 });
 builder.Services.AddIdentity<User, Role>(options =>
@@ -33,10 +35,12 @@ builder.Services.AddIdentity<User, Role>(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IService<>), typeof(Service<>));
 builder.Services.AddAutoMapper(typeof(MapProfile));
 builder.Services.AddScoped<INoteService, NoteService>();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -49,25 +53,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapControllers();
 
 app.Run();
 
