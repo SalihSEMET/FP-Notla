@@ -12,8 +12,8 @@ using Notla.Repository.Contexts;
 namespace Notla.Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260216160442_MakeDescriptionNullable")]
-    partial class MakeDescriptionNullable
+    [Migration("20260218074305_AddPriceToNote")]
+    partial class AddPriceToNote
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -181,7 +181,7 @@ namespace Notla.Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("Price")
+                    b.Property<decimal?>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Title")
