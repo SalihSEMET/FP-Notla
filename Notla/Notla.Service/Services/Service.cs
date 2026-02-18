@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Notla.Core.Repositories;
 using Notla.Core.Services;
 using Notla.Core.UnitOfWork;
+using Notla.Core.Exceptions;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 namespace Notla.Service.Services
@@ -37,7 +38,12 @@ namespace Notla.Service.Services
         }
         public async Task<T> GetByIdAsync(int id)
         {
-            return await _repository.GetByIdAsync(id);
+            var hasEntity = await _repository.GetByIdAsync(id);
+            if (hasEntity == null)
+            {
+                throw new NotFoundException($"{typeof(T).Name}({id}) Not Found");
+            }
+            return hasEntity;
         }
         public async Task UpdateAsync(T entitiy)
         {

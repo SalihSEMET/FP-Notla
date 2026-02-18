@@ -45,6 +45,7 @@ namespace Notla.API.Controllers
         [HttpPut]
         public async Task<IActionResult> Update(CategoryDto categoryDto)
         {
+            await _categoryservice.GetByIdAsync(categoryDto.Id);
             var categoryEntitiy = _mapper.Map<Category>(categoryDto);
             await _categoryservice.UpdateAsync(categoryEntitiy);
             return NoContent();

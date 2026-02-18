@@ -11,6 +11,7 @@ using Notla.Service.Mapping;
 using Notla.Core.Repositories;
 using Notla.Repository.Repositories;
 using AutoMapper;
+using Notla.API.MiddleWares;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -54,7 +55,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCustomException();
 app.UseHttpsRedirection();
 
 app.MapControllers();

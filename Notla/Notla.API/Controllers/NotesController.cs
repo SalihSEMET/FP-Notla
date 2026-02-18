@@ -27,10 +27,6 @@ namespace Notla.API.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var note = await _noteService.GetByIdAsync(id);
-            if (note == null)
-            {
-                return NotFound();
-            }
             var noteDto = _mapper.Map<NoteDto>(note);
             return Ok(noteDto);
         }
@@ -38,10 +34,6 @@ namespace Notla.API.Controllers
         public async Task<IActionResult> GetWithCategoryById(int id)
         {
             var noteDto = await _noteService.GetNoteWithCategoryByIdAsync(id);
-            if (noteDto == null)
-            {
-                return NotFound();
-            }
             return Ok(noteDto);
         }
         [HttpPost]
@@ -55,6 +47,7 @@ namespace Notla.API.Controllers
         [HttpPut]
         public async Task<IActionResult> Update(NoteUpdateDto noteUpdateDto)
         {
+            await _noteService.GetByIdAsync(noteUpdateDto.Id);
             var noteEntity = _mapper.Map<Note>(noteUpdateDto);
             await _noteService.UpdateAsync(noteEntity);
             return NoContent();
@@ -63,10 +56,6 @@ namespace Notla.API.Controllers
         public async Task<IActionResult> Remove(int id)
         {
             var note = await _noteService.GetByIdAsync(id);
-            if (note == null)
-            {
-                return NotFound();
-            }
             await _noteService.RemoveAsync(note);
             return NoContent();
         }
