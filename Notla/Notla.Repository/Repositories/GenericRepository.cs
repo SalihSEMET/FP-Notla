@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Notla.Core.Entities;
 namespace Notla.Repository.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
@@ -40,7 +41,15 @@ namespace Notla.Repository.Repositories
         }
         public void Remove(T entity)
         {
-            _dbSet.Remove(entity);
+            if (entity is BaseEntity baseEntity)
+            {
+                baseEntity.IsActive = false;
+                _dbSet.Update(entity);
+            }
+            else
+            {
+                _dbSet.Remove(entity);
+            }
         }
         public void RemoveRange(IEnumerable<T> entities)
         {

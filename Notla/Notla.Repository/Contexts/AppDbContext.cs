@@ -19,7 +19,6 @@ namespace Notla.Repository.Contexts
                 {
                     case EntityState.Added:
                         entry.Entity.CreatedDate = DateTime.Now;
-                        entry.Entity.IsDeleted = false;
                         break;
                     case EntityState.Modified:
                         entry.Entity.UpdatedDate = DateTime.Now;
@@ -32,6 +31,10 @@ namespace Notla.Repository.Contexts
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Note>().Property(x => x.IsActive).HasDefaultValue(true);
+            modelBuilder.Entity<Category>().Property(x => x.IsActive).HasDefaultValue(true);
+            modelBuilder.Entity<Note>().HasQueryFilter(n => n.IsActive);
+            modelBuilder.Entity<Category>().HasQueryFilter(c => c.IsActive);
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
             modelBuilder.Entity<Note>()
                 .Property(n => n.Price)
