@@ -17,6 +17,10 @@ using Microsoft.AspNetCore.Mvc;
 using Notla.API.Filters;
 using Notla.Service.Validations;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -69,6 +73,28 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader();
     });
 });
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, opts =>
+{
+    var tokenOptions = builder.Configuration.GetSection("TokenOption");
+
+    opts.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidIssuer = tokenOptions["Issuer"],
+        ValidAudience = tokenOptions["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenOptions["SecurityKey"])),
+
+        ValidateIssuerSigningKey = true,
+        ValidateAudience = true,
+        ValidateIssuer = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+builder.Services.AddScoped<ITokenService, TokenService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -77,9 +103,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCustomException();
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+
 app.MapControllers();
 
 app.Run();
