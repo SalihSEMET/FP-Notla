@@ -13,19 +13,23 @@ namespace Notla.API.MiddleWares
                 {
                     context.Response.ContentType = "application/json";
                     var exceptionsFeature = context.Features.Get<IExceptionHandlerFeature>();
-                    var statusCode = exceptionsFeature.Error switch
+                    if (exceptionsFeature != null)
                     {
-                        ClientSideException => 400, //User Error
-                        NotFoundException => 404, //Not Found Error
-                        _ => 500 //Remaining Errors
-                    };
-                    context.Response.StatusCode = statusCode;
-                    var response = new
-                    {
-                        StatusCode = statusCode,
-                        Message = exceptionsFeature.Error.Message
-                    };
-                    await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                        var statusCode = exceptionsFeature.Error switch
+                        {
+                            ClientSideException => 400, //User Error
+                            NotFoundException => 404, //Not Found Error
+                            _ => 500 //Remaining Errors
+                        };
+
+                        context.Response.StatusCode = statusCode;
+                        var response = new
+                        {
+                            StatusCode = statusCode,
+                            Message = exceptionsFeature.Error.Message
+                        };
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                    }
                 });
             });
         }

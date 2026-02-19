@@ -12,6 +12,11 @@ using Notla.Core.Repositories;
 using Notla.Repository.Repositories;
 using AutoMapper;
 using Notla.API.MiddleWares;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
+using Notla.API.Filters;
+using Notla.Service.Validations;
+using FluentValidation;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -45,8 +50,16 @@ builder.Services.AddAutoMapper(config =>
     config.AddProfile<MapProfile>();
 });
 builder.Services.AddScoped<INoteService, NoteService>();
-builder.Services.AddControllers();
-
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new ValidateFilterAttribute());
+});
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+builder.Services.AddFluentValidationAutoValidation()
+    .AddValidatorsFromAssemblyContaining<NoteCreateDtoValidator>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
