@@ -121,6 +121,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IStorageService, LocalStorageService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -134,6 +135,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseCustomException();
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.MapControllers();
 
