@@ -11,7 +11,7 @@ namespace Notla.Core.Entities
         public string? CoverImageUrl { get; set; }
         public int CategoryId { get; set; }
         public Category Category { get; set; }
-        public string SellerId { get; set; }
+        public int SellerId { get; set; }
         public User Seller { get; set; }
         public ICollection<NoteImage> Images { get; set; }
         public Note()
