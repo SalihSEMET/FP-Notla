@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Notla.Core.DTOs;
 using Notla.Core.Entities;
 using Notla.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 namespace Notla.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class NotesController : ControllerBase
