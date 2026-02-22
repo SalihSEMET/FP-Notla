@@ -25,7 +25,7 @@ namespace Notla.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var notes = await _noteService.GetAllAsync();
+            var notes = await _noteService.GetNotesWithImagesAsync();
             var notesDto = _mapper.Map<IEnumerable<NoteDto>>(notes);
             return Ok(notesDto);
         }

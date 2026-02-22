@@ -23,6 +23,12 @@ namespace Notla.Service.Services
                                         .SingleOrDefaultAsync();
             return _mapper.Map<NoteDto>(note);
         }
+        public async Task<List<Note>> GetNotesWithImagesAsync()
+        {
+            return await _repository.Where(x => true)
+            .Include(x => x.Images)
+            .ToListAsync();
+        }
 
     }
 }
