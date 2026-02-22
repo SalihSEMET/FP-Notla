@@ -12,9 +12,7 @@ namespace Notla.Service.Mapping
             CreateMap<Note, NoteUpdateDto>().ReverseMap();
             CreateMap<Note, NoteDto>()
             .ForMember(dest => dest.CoverImageUrl, opt =>
-            opt.MapFrom(src => src.Images.FirstOrDefault(x => x.IsCover) != null
-            ? src.Images.FirstOrDefault(x => x.IsCover).ImageUrl : null))
-            .ForMember(dest => dest.SampleImageUrls, opt => opt.MapFrom(src => src.Images.Where(x => !x.IsCover).Select(x => x.ImageUrl).ToList()));
+            opt.MapFrom(src => src.Images.Where(x => x.IsCover).Select(x => x.ImageUrl).FirstOrDefault()));
         }
     }
 }

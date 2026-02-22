@@ -4,10 +4,10 @@ namespace Notla.Core.Entities
     {
         public int UserId { get; set; }
         public User User { get; set; }
-        public ICollection<CartItem> CardItems { get; set; }
+        public ICollection<CartItem> CartItems { get; set; }
         public Cart()
         {
-            CardItems = new HashSet<CartItem>();
+            CartItems = new HashSet<CartItem>();
         }
     }
 }
