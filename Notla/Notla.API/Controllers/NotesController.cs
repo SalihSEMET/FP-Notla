@@ -1,9 +1,11 @@
-using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Notla.Core.DTOs;
 using Notla.Core.Entities;
 using Notla.Core.Services;
-using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore.Metadata;
 namespace Notla.API.Controllers
 {
     [Authorize]
@@ -12,11 +14,13 @@ namespace Notla.API.Controllers
     public class NotesController : ControllerBase
     {
         private readonly INoteService _noteService;
+        private readonly IStorageService _storageService;
         private readonly IMapper _mapper;
-        public NotesController(INoteService noteService, IMapper mapper)
+        public NotesController(INoteService noteService, IMapper mapper, IStorageService storageService)
         {
             _noteService = noteService;
             _mapper = mapper;
+            _storageService = storageService;
         }
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -39,12 +43,48 @@ namespace Notla.API.Controllers
             return Ok(noteDto);
         }
         [HttpPost]
-        public async Task<IActionResult> Save(NoteCreateDto noteCreateDto)
+        public async Task<IActionResult> CreateNote([FromForm] NoteCreateDto noteDto)
         {
-            var noteEntity = _mapper.Map<Note>(noteCreateDto);
-            var newNote = await _noteService.AddAsync(noteEntity);
-            var newNoteDto = _mapper.Map<NoteDto>(newNote);
-            return CreatedAtAction(nameof(GetById), new { id = newNoteDto.Id }, newNoteDto);
+            if (noteDto.SampleImages != null && noteDto.SampleImages.Count > 15)
+            {
+                return BadRequest("You can upload a maximum of 15 sample photos.");
+            }
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int sellerId = int.Parse(userIdString);
+            string coverImagePath = await _storageService.UploadFileAsync("images", noteDto.CoverImage);
+            string demoPdfPath = await _storageService.UploadFileAsync("pdfs", noteDto.DemoPdf);
+            string originalPdfPath = await _storageService.UploadFileAsync("pdfs", noteDto.OriginalPdf);
+            var newNote = new Note
+            {
+                Title = noteDto.Title,
+                Content = noteDto.Content,
+                Price = noteDto.Price,
+                CategoryId = noteDto.CategoryId,
+                SellerId = sellerId,
+                DemoPdfUrl = demoPdfPath,
+                OriginalPdfUrl = originalPdfPath,
+                Images = new List<NoteImage>()
+            };
+            newNote.Images.Add(new NoteImage
+            {
+                ImageUrl = coverImagePath,
+                IsCover = true
+            });
+            if (noteDto.SampleImages != null && noteDto.SampleImages.Any())
+            {
+                foreach (var sampleImage in noteDto.SampleImages)
+                {
+                    string samplePath = await _storageService.UploadFileAsync("images", sampleImage);
+                    newNote.Images.Add(new NoteImage
+                    {
+                        ImageUrl = samplePath,
+                        IsCover = false
+                    });
+                }
+            }
+            await _noteService.AddAsync(newNote);
+            return StatusCode(201, "The note was successfully put up for sale and the files were uploaded!");
         }
         [HttpPut]
         public async Task<IActionResult> Update(NoteUpdateDto noteUpdateDto)
