@@ -123,6 +123,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
