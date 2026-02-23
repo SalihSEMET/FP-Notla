@@ -124,6 +124,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<INoteReviewService, NoteReviewService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

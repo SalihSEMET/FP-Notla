@@ -305,6 +305,45 @@ namespace Notla.Repository.Migrations
                     b.ToTable("NoteImages");
                 });
 
+            modelBuilder.Entity("Notla.Core.Entities.NoteReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NoteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NoteId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("NoteReviews");
+                });
+
             modelBuilder.Entity("Notla.Core.Entities.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -642,7 +681,7 @@ namespace Notla.Repository.Migrations
             modelBuilder.Entity("Notla.Core.Entities.CartItem", b =>
                 {
                     b.HasOne("Notla.Core.Entities.Cart", "Cart")
-                        .WithMany("CardItems")
+                        .WithMany("CartItems")
                         .HasForeignKey("CartId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -686,6 +725,25 @@ namespace Notla.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Note");
+                });
+
+            modelBuilder.Entity("Notla.Core.Entities.NoteReview", b =>
+                {
+                    b.HasOne("Notla.Core.Entities.Note", "Note")
+                        .WithMany("Reviews")
+                        .HasForeignKey("NoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Notla.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Note");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Notla.Core.Entities.Order", b =>
@@ -750,7 +808,7 @@ namespace Notla.Repository.Migrations
 
             modelBuilder.Entity("Notla.Core.Entities.Cart", b =>
                 {
-                    b.Navigation("CardItems");
+                    b.Navigation("CartItems");
                 });
 
             modelBuilder.Entity("Notla.Core.Entities.Category", b =>
@@ -761,6 +819,8 @@ namespace Notla.Repository.Migrations
             modelBuilder.Entity("Notla.Core.Entities.Note", b =>
                 {
                     b.Navigation("Images");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Notla.Core.Entities.Order", b =>

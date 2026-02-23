@@ -13,6 +13,7 @@ namespace Notla.Core.Entities
         public Category Category { get; set; }
         public int SellerId { get; set; }
         public User Seller { get; set; }
+        public ICollection<NoteReview> Reviews { get; set; }
         public ICollection<NoteImage> Images { get; set; }
         public Note()
         {
