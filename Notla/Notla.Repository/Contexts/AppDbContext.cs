@@ -19,6 +19,7 @@ namespace Notla.Repository.Contexts
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<NoteReview> NoteReviews { get; set; }
+        public DbSet<UserFavorite> UserFavorites { get; set; }
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
