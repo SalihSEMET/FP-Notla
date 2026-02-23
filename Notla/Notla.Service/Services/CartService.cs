@@ -11,27 +11,35 @@ namespace Notla.Service.Services
         private readonly IGenericRepository<Cart> _cartRepository;
         private readonly IGenericRepository<CartItem> _carItemRepository;
         private readonly IGenericRepository<Note> _noteRepository;
+        private readonly IGenericRepository<UserPurchasedNote> _purchasedNoteRepository;
         private readonly IUnitOfWork _unitOfWork;
         public CartService
         (
             IGenericRepository<Cart> cartRepository,
             IGenericRepository<CartItem> cartItemRepository,
             IGenericRepository<Note> noteRepository,
+            IGenericRepository<UserPurchasedNote> purchasedNoteRepository,
             IUnitOfWork unitOfWork
         )
         {
             _cartRepository = cartRepository;
             _carItemRepository = cartItemRepository;
             _noteRepository = noteRepository;
+            _purchasedNoteRepository = purchasedNoteRepository;
             _unitOfWork = unitOfWork;
         }
         public async Task AddToCartAsync(int userId, int noteId)
         {
-            var noteExists = await _noteRepository.Where(n => n.Id == noteId).AnyAsync();
-            if (!noteExists) throw new Exception("No such note was found!");
+            var note = await _noteRepository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
+            if (note == null) throw new Exception("This note was not found.");
+            if (note.SellerId == userId)
+                throw new Exception("You can't buy a note that you yourself have put up for sale.");
+            var alreadyPurchased = await _purchasedNoteRepository.Where(p => p.UserId == userId && p.NoteId == noteId).AnyAsync();
+            if (alreadyPurchased)
+                throw new Exception("This note is already in your library! You cannot purchase it again.");
             var cart = await _cartRepository.Where(c => c.UserId == userId)
-                                                .Include(c => c.CartItems)
-                                                .FirstOrDefaultAsync();
+            .Include(c => c.CartItems)
+            .FirstOrDefaultAsync();
             if (cart == null)
             {
                 cart = new Cart { UserId = userId };
@@ -40,7 +48,7 @@ namespace Notla.Service.Services
             }
             if (cart.CartItems.Any(ci => ci.NoteId == noteId))
             {
-                throw new Exception("This note is already in your cart!");
+                throw new Exception("This note is already in your cart.");
             }
             await _carItemRepository.AddAsync(new CartItem
             {
