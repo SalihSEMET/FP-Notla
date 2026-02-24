@@ -15,14 +15,14 @@ namespace Notla.API.Controllers
             _orderService = orderService;
         }
         [HttpPost("Checkout")]
-        public async Task<IActionResult> Checkout()
+        public async Task<IActionResult> Checkout([FromQuery] string? discountCode = null)
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
             try
             {
-                var orderDto = await _orderService.CheckoutAsync(userId);
+                var orderDto = await _orderService.CheckoutAsync(userId, discountCode);
                 return Ok(orderDto);
             }
             catch (Exception ex)

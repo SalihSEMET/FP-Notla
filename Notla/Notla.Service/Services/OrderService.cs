@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Notla.Core.DTOs;
 using Notla.Core.Entities;
-using Notla.Core.Services;
 using Notla.Core.Repositories;
+using Notla.Core.Services;
 using Notla.Core.UnitOfWork;
+
 namespace Notla.Service.Services
 {
     public class OrderService : IOrderService
@@ -13,79 +14,117 @@ namespace Notla.Service.Services
         private readonly IGenericRepository<UserPurchasedNote> _purchasedNoteRepository;
         private readonly IGenericRepository<Cart> _cartRepository;
         private readonly IGenericRepository<CartItem> _cartItemRepository;
+        private readonly IGenericRepository<DiscountCode> _discountRepository;
         private readonly UserManager<User> _userManager;
         private readonly IUnitOfWork _unitOfWork;
+
         public OrderService(
             IGenericRepository<Order> orderRepository,
             IGenericRepository<UserPurchasedNote> purchasedNoteRepository,
             IGenericRepository<Cart> cartRepository,
             IGenericRepository<CartItem> cartItemRepository,
+            IGenericRepository<DiscountCode> discountRepository,
             UserManager<User> userManager,
-            IUnitOfWork unitOfWork
-        )
+            IUnitOfWork unitOfWork)
         {
             _orderRepository = orderRepository;
             _purchasedNoteRepository = purchasedNoteRepository;
             _cartRepository = cartRepository;
             _cartItemRepository = cartItemRepository;
+            _discountRepository = discountRepository;
             _userManager = userManager;
             _unitOfWork = unitOfWork;
         }
-        public async Task<OrderDto> CheckoutAsync(int userId)
+        public async Task<OrderDto> CheckoutAsync(int userId, string? discountCode = null)
         {
             var cart = await _cartRepository.Where(c => c.UserId == userId)
-            .Include(c => c.CartItems)
-            .ThenInclude(ci => ci.Note)
-            .FirstOrDefaultAsync();
+                .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Note)
+                .FirstOrDefaultAsync();
+
             if (cart == null || !cart.CartItems.Any())
-                throw new Exception("Your basket is empty! There's nothing to buy.");
+                throw new Exception("Your cart is empty. There's nothing to buy.");
+
             var buyer = await _userManager.FindByIdAsync(userId.ToString());
             if (buyer == null) throw new Exception("User not found.");
-            decimal totalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
-            if (buyer.WalletBalance < totalAmount) throw new Exception($"Insufficient balance! Basket total:{totalAmount} TL,Bakiyeniz:{buyer.WalletBalance} TL");
-            buyer.WalletBalance -= totalAmount;
+
+            decimal discountMultiplier = 1m;
+
+            if (!string.IsNullOrWhiteSpace(discountCode))
+            {
+                var discount = await _discountRepository
+                    .Where(d => d.Code == discountCode && d.IsActive && d.ExpiryDate > DateTime.Now)
+                    .FirstOrDefaultAsync();
+
+                if (discount == null)
+                    throw new Exception("Invalid or expired discount code!");
+
+                discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
+            }
+            // -----------------------------------------------------
+
+            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
+            decimal finalTotalAmount = originalTotalAmount * discountMultiplier;
+
+            if (buyer.WalletBalance < finalTotalAmount)
+                throw new Exception($"Insufficient balance! Discounted Basket amount: {finalTotalAmount} TL, Your balance: {buyer.WalletBalance} TL");
+
+            buyer.WalletBalance -= finalTotalAmount;
+
             var order = new Order
             {
                 UserId = userId,
-                TotalAmount = totalAmount,
+                TotalAmount = finalTotalAmount,
                 OrderStatus = "Completed",
                 OrderItems = new List<OrderItem>()
             };
+
             var purchasedNoteTitles = new List<string>();
+
             foreach (var item in cart.CartItems)
             {
+                decimal itemOriginalPrice = item.Note.Price ?? 0;
+                decimal itemDiscountedPrice = itemOriginalPrice * discountMultiplier;
+
                 order.OrderItems.Add(new OrderItem
                 {
                     NoteId = item.NoteId,
-                    Price = item.Note.Price ?? 0
+                    Price = itemDiscountedPrice
                 });
+
                 await _purchasedNoteRepository.AddAsync(new UserPurchasedNote
                 {
                     UserId = userId,
                     NoteId = item.NoteId
                 });
-                decimal itemPrice = item.Note.Price ?? 0;
+
                 decimal commissionRate = 0.10m;
-                decimal plartformCut = itemPrice * commissionRate;
-                decimal sellerCut = itemPrice - plartformCut;
+                decimal platformCut = itemDiscountedPrice * commissionRate;
+                decimal sellerCut = itemDiscountedPrice - platformCut;
+
                 var seller = await _userManager.FindByIdAsync(item.Note.SellerId.ToString());
                 if (seller != null)
                 {
                     seller.WalletBalance += sellerCut;
                     await _userManager.UpdateAsync(seller);
                 }
+
                 var adminUser = await _userManager.FindByEmailAsync("admin@notla.com");
                 if (adminUser != null)
                 {
-                    adminUser.WalletBalance += plartformCut;
+                    adminUser.WalletBalance += platformCut;
                     await _userManager.UpdateAsync(adminUser);
                 }
+
                 purchasedNoteTitles.Add(item.Note.Title);
             }
+
             await _orderRepository.AddAsync(order);
             _cartItemRepository.RemoveRange(cart.CartItems);
+
             await _userManager.UpdateAsync(buyer);
             await _unitOfWork.CommitAsync();
+
             return new OrderDto
             {
                 Id = order.Id,
@@ -95,12 +134,14 @@ namespace Notla.Service.Services
                 PurchasedNoteTitles = purchasedNoteTitles
             };
         }
+
         public async Task<List<LibraryItemDto>> GetMyLibraryAsync(int userId)
         {
             var purchasedNotes = await _purchasedNoteRepository.Where(p => p.UserId == userId)
-            .Include(p => p.Note)
-            .ThenInclude(n => n.Images)
-            .ToListAsync();
+                .Include(p => p.Note)
+                    .ThenInclude(n => n.Images)
+                .ToListAsync();
+
             return purchasedNotes.Select(p => new LibraryItemDto
             {
                 NoteId = p.NoteId,
@@ -109,12 +150,14 @@ namespace Notla.Service.Services
                 OriginalPdfUrl = p.Note.OriginalPdfUrl
             }).ToList();
         }
+
         public async Task<List<OrderDto>> GetMyOrdersAsync(int userId)
         {
             var orders = await _orderRepository.Where(o => o.UserId == userId)
-            .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Note)
-            .ToListAsync();
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Note)
+                .ToListAsync();
+
             return orders.Select(o => new OrderDto
             {
                 Id = o.Id,
