@@ -64,11 +64,21 @@ namespace Notla.Service.Services
                     UserId = userId,
                     NoteId = item.NoteId
                 });
+                decimal itemPrice = item.Note.Price ?? 0;
+                decimal commissionRate = 0.10m;
+                decimal plartformCut = itemPrice * commissionRate;
+                decimal sellerCut = itemPrice - plartformCut;
                 var seller = await _userManager.FindByIdAsync(item.Note.SellerId.ToString());
                 if (seller != null)
                 {
-                    seller.WalletBalance += item.Note.Price ?? 0;
+                    seller.WalletBalance += sellerCut;
                     await _userManager.UpdateAsync(seller);
+                }
+                var adminUser = await _userManager.FindByEmailAsync("admin@notla.com");
+                if (adminUser != null)
+                {
+                    adminUser.WalletBalance += plartformCut;
+                    await _userManager.UpdateAsync(adminUser);
                 }
                 purchasedNoteTitles.Add(item.Note.Title);
             }
