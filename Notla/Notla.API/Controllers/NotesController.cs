@@ -101,5 +101,11 @@ namespace Notla.API.Controllers
             await _noteService.RemoveAsync(note);
             return NoContent();
         }
+        [HttpGet("Filter")]
+        public async Task<IActionResult> GetFilteredNotes([FromQuery] NoteFilterDto filterDto)
+        {
+            var result = await _noteService.GetFilteredAndPagedNotesAsync(filterDto);
+            return Ok(result);
+        }
     }
 }

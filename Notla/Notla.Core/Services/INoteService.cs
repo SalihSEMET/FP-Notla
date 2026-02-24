@@ -6,5 +6,6 @@ namespace Notla.Core.Services
     {
         Task<NoteDto> GetNoteWithCategoryByIdAsync(int noteId);
         Task<List<Note>> GetNotesWithImagesAsync();
+        Task<PagedResultDto<NoteDto>> GetFilteredAndPagedNotesAsync(NoteFilterDto filter);
     }
 }
