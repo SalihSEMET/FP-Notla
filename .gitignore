@@ -52,5 +52,5 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
-Notla.API/wwwroot/pdfs/
-Notla.API/wwwroot/images
+Notla.API/wwwroot/uploads/pdfs/
+Notla.API/wwwroot/uploads/images
