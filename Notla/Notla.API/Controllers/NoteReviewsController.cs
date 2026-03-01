@@ -27,15 +27,9 @@ namespace Notla.API.Controllers
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-            try
-            {
-                var review = await _noteReviewService.AddReviewAsync(userId, dto);
-                return StatusCode(201, review);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+
+            var review = await _noteReviewService.AddReviewAsync(userId, dto);
+            return StatusCode(201, review);
         }
     }
 }

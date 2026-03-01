@@ -138,6 +138,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCustomException();
+app.UseMiddleware<Notla.API.MiddleWares.ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

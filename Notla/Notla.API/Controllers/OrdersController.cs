@@ -20,15 +20,8 @@ namespace Notla.API.Controllers
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-            try
-            {
-                var orderDto = await _orderService.CheckoutAsync(userId, discountCode);
-                return Ok(orderDto);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var orderDto = await _orderService.CheckoutAsync(userId, discountCode);
+            return Ok(orderDto);
         }
         [HttpGet("MyOrders")]
         public async Task<IActionResult> GetMyOrders()

@@ -20,15 +20,9 @@ namespace Notla.API.Controllers
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-            try
-            {
-                await _favoriteService.ToggleFavoriteAsync(userId, noteId);
-                return Ok("The favorite operation was successfully completed.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+
+            await _favoriteService.ToggleFavoriteAsync(userId, noteId);
+            return Ok("The favorite operation was successfully completed.");
         }
         [HttpGet("MyFavorites")]
         public async Task<IActionResult> GetMyFavorites()
