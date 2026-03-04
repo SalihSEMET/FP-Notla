@@ -18,6 +18,7 @@ namespace Notla.Service.Services
         private readonly UserManager<User> _userManager;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
         public OrderService(
             IGenericRepository<Order> orderRepository,
@@ -27,6 +28,7 @@ namespace Notla.Service.Services
             IGenericRepository<DiscountCode> discountRepository,
             UserManager<User> userManager,
             IUnitOfWork unitOfWork,
+            INotificationService notificationService,
             IEmailService emailService)
         {
             _orderRepository = orderRepository;
@@ -37,6 +39,7 @@ namespace Notla.Service.Services
             _userManager = userManager;
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
         public async Task<OrderDto> CheckoutAsync(int userId, string? discountCode = null)
         {
@@ -151,7 +154,19 @@ namespace Notla.Service.Services
             {
                 Console.WriteLine($"Mail gönderilemedi: {ex.Message}");
             }
-
+            try
+            {
+                var sellerIds = cart.CartItems.Select(ci => ci.Note.SellerId).Distinct().ToList();
+                foreach (var sellerId in sellerIds)
+                {
+                    string message = $"Congratulations One of your notes on the site was just purchased by {buyer.UserName}";
+                    await _notificationService.SendNotificationToUserAsync(sellerId.ToString(), message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Live notification could not be sent:{ex.Message}");
+            }
             return new OrderDto
             {
                 Id = order.Id,

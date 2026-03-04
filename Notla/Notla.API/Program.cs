@@ -84,6 +84,7 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add(new ValidateFilterAttribute());
 });
+builder.Services.AddSignalR();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.SuppressModelStateInvalidFilter = true;
@@ -127,6 +128,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<INoteReviewService, NoteReviewService>();
 builder.Services.AddScoped<IUserFavoriteService, UserFavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, Notla.API.Services.SignalRNotificationService>();
 builder.Services.AddMemoryCache();
 var app = builder.Build();
 
@@ -145,6 +147,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.MapControllers();
+
+app.MapHub<Notla.API.Hubs.NotificationHub>("/notificationHub");
 
 app.Run();
 
