@@ -32,7 +32,7 @@ namespace Notla.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var note = await _noteService.GetByIdAsync(id);
+            var note = await _noteService.GetNoteWithCategoryByIdAsync(id);
             var noteDto = _mapper.Map<NoteDto>(note);
             return Ok(noteDto);
         }

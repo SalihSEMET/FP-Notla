@@ -11,27 +11,29 @@ namespace Notla.Service.Services
     {
         private readonly IGenericRepository<Note> _repository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
         public NoteService(IGenericRepository<Note> repository, IUnitOfWork unitOfWork, IMapper mapper) : base(repository, unitOfWork)
         {
             _repository = repository;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
         public async Task<NoteDto> GetNoteWithCategoryByIdAsync(int noteId)
         {
-            var note = await _repository.Where(x => x.Id == noteId)
+            var note = await _repository.Where(x => x.Id == noteId && x.IsApproved == true)
                                         .Include(x => x.Category)
                                         .SingleOrDefaultAsync();
             return _mapper.Map<NoteDto>(note);
         }
         public async Task<List<Note>> GetNotesWithImagesAsync()
         {
-            return await _repository.Where(x => true)
+            return await _repository.Where(x => x.IsApproved == true)
             .Include(x => x.Images)
             .ToListAsync();
         }
         public async Task<PagedResultDto<NoteDto>> GetFilteredAndPagedNotesAsync(NoteFilterDto filter)
         {
-            var query = _repository.Where(n => true)
+            var query = _repository.Where(n => n.IsApproved == true)
                 .Include(n => n.Images)
                 .Include(n => n.Reviews)
                 .AsNoTracking();
@@ -67,6 +69,30 @@ namespace Notla.Service.Services
                 PageSize = filter.PageSize
             };
         }
-
+        public async Task<List<NoteDto>> GetPendingNotesAsync()
+        {
+            var pendingNotes = await _repository
+            .Where(n => n.IsApproved == false)
+            .Include(n => n.Images)
+            .ToListAsync();
+            return _mapper.Map<List<NoteDto>>(pendingNotes);
+        }
+        public async Task ApproveNoteAsync(int noteId)
+        {
+            var note = await _repository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
+            if (note == null) throw new Exception("No notes found to be approved.");
+            if (note.IsApproved) throw new Exception("This Note Has Already Been Approved");
+            note.IsApproved = true;
+            _repository.Update(note);
+            await _unitOfWork.CommitAsync();
+        }
+        public async Task RejectNoteAsync(int noteId)
+        {
+            var note = await _repository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
+            if (note == null) throw new Exception("No notes were found to be rejected.");
+            note.IsActive = false;
+            _repository.Update(note);
+            await _unitOfWork.CommitAsync();
+        }
     }
 }

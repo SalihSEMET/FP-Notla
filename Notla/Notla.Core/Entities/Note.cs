@@ -15,6 +15,7 @@ namespace Notla.Core.Entities
         public User Seller { get; set; }
         public ICollection<NoteReview> Reviews { get; set; }
         public ICollection<NoteImage> Images { get; set; }
+        public bool IsApproved { get; set; } = false;
         public Note()
         {
             Images = new HashSet<NoteImage>();

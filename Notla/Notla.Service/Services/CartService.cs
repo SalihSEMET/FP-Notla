@@ -30,8 +30,8 @@ namespace Notla.Service.Services
         }
         public async Task AddToCartAsync(int userId, int noteId)
         {
-            var note = await _noteRepository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
-            if (note == null) throw new Exception("This note was not found.");
+            var note = await _noteRepository.Where(n => n.Id == noteId && n.IsApproved == true).FirstOrDefaultAsync();
+            if (note == null) throw new Exception("This note was either not found or has not yet been approved by the Admin!");
             if (note.SellerId == userId)
                 throw new Exception("You can't buy a note that you yourself have put up for sale.");
             var alreadyPurchased = await _purchasedNoteRepository.Where(p => p.UserId == userId && p.NoteId == noteId).AnyAsync();
