@@ -127,6 +127,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<INoteReviewService, NoteReviewService>();
 builder.Services.AddScoped<IUserFavoriteService, UserFavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddMemoryCache();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

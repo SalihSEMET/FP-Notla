@@ -5,6 +5,7 @@ using Notla.Core.DTOs;
 using Notla.Core.Repositories;
 using Notla.Core.Services;
 using Notla.Core.UnitOfWork;
+using Microsoft.Extensions.Caching.Memory;
 namespace Notla.Service.Services
 {
     public class NoteService : Service<Note>, INoteService
@@ -12,24 +13,37 @@ namespace Notla.Service.Services
         private readonly IGenericRepository<Note> _repository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
-        public NoteService(IGenericRepository<Note> repository, IUnitOfWork unitOfWork, IMapper mapper) : base(repository, unitOfWork)
+        private readonly IMemoryCache _memoryCache;
+        public NoteService(IGenericRepository<Note> repository, IUnitOfWork unitOfWork, IMapper mapper, IMemoryCache memoryCache) : base(repository, unitOfWork)
         {
             _repository = repository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _memoryCache = memoryCache;
         }
         public async Task<NoteDto> GetNoteWithCategoryByIdAsync(int noteId)
         {
             var note = await _repository.Where(x => x.Id == noteId && x.IsApproved == true)
                                         .Include(x => x.Category)
                                         .SingleOrDefaultAsync();
+
             return _mapper.Map<NoteDto>(note);
         }
-        public async Task<List<Note>> GetNotesWithImagesAsync()
+        public async Task<List<NoteDto>> GetNotesWithImagesAsync()
         {
-            return await _repository.Where(x => x.IsApproved == true)
-            .Include(x => x.Images)
-            .ToListAsync();
+            const string cacheKey = "ApprovedNotesCache";
+            if (!_memoryCache.TryGetValue(cacheKey, out List<NoteDto> cachedNotes))
+            {
+                var notesFromDb = await _repository.Where(x => x.IsApproved == true)
+                .Include(x => x.Images)
+                .AsNoTracking()
+                .ToListAsync();
+                cachedNotes = _mapper.Map<List<NoteDto>>(notesFromDb);
+                var cacheOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+                _memoryCache.Set(cacheKey, cachedNotes, cacheOptions);
+            }
+            return cachedNotes;
         }
         public async Task<PagedResultDto<NoteDto>> GetFilteredAndPagedNotesAsync(NoteFilterDto filter)
         {
@@ -85,6 +99,7 @@ namespace Notla.Service.Services
             note.IsApproved = true;
             _repository.Update(note);
             await _unitOfWork.CommitAsync();
+            _memoryCache.Remove("ApprovedNotesCache");
         }
         public async Task RejectNoteAsync(int noteId)
         {
@@ -93,6 +108,7 @@ namespace Notla.Service.Services
             note.IsActive = false;
             _repository.Update(note);
             await _unitOfWork.CommitAsync();
+            _memoryCache.Remove("ApprovedNotesCache");
         }
     }
 }

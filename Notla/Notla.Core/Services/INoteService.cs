@@ -5,7 +5,7 @@ namespace Notla.Core.Services
     public interface INoteService : IService<Note>
     {
         Task<NoteDto> GetNoteWithCategoryByIdAsync(int noteId);
-        Task<List<Note>> GetNotesWithImagesAsync();
+        Task<List<NoteDto>> GetNotesWithImagesAsync();
         Task<PagedResultDto<NoteDto>> GetFilteredAndPagedNotesAsync(NoteFilterDto filter);
         Task<List<NoteDto>> GetPendingNotesAsync();
         Task ApproveNoteAsync(int noteId);
