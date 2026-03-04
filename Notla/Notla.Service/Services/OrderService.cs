@@ -17,6 +17,7 @@ namespace Notla.Service.Services
         private readonly IGenericRepository<DiscountCode> _discountRepository;
         private readonly UserManager<User> _userManager;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
         public OrderService(
             IGenericRepository<Order> orderRepository,
@@ -25,7 +26,8 @@ namespace Notla.Service.Services
             IGenericRepository<CartItem> cartItemRepository,
             IGenericRepository<DiscountCode> discountRepository,
             UserManager<User> userManager,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IEmailService emailService)
         {
             _orderRepository = orderRepository;
             _purchasedNoteRepository = purchasedNoteRepository;
@@ -34,6 +36,7 @@ namespace Notla.Service.Services
             _discountRepository = discountRepository;
             _userManager = userManager;
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
         public async Task<OrderDto> CheckoutAsync(int userId, string? discountCode = null)
         {
@@ -61,7 +64,6 @@ namespace Notla.Service.Services
 
                 discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
             }
-            // -----------------------------------------------------
 
             decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
             decimal finalTotalAmount = originalTotalAmount * discountMultiplier;
@@ -124,6 +126,31 @@ namespace Notla.Service.Services
 
             await _userManager.UpdateAsync(buyer);
             await _unitOfWork.CommitAsync();
+
+            try
+            {
+                string subject = "Note - Your order has been successfully received.";
+
+                string body = $@"
+                    <h2>Hello {buyer.UserName}, Thank you for choosing us.</h2>
+                    <p>Your order has been successfully confirmed and you have received the notes. <b>To your library</b> added</p>
+                    <hr />
+                    <h3>Order Summary:</h3>
+                    <ul>
+                        <li><b>Order Amount:</b> {finalTotalAmount} TL</li>
+                        <li><b>Order Date:</b> {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}</li>
+                        <li><b>Notes Taken:</b> {string.Join(", ", purchasedNoteTitles)}</li>
+                    </ul>
+                    <hr />
+                    <p>We wish you endless success in your exams and projects.</p>
+                    <p><b>Team Notla</b></p>";
+
+                await _emailService.SendEmailAsync(buyer.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Mail gönderilemedi: {ex.Message}");
+            }
 
             return new OrderDto
             {
