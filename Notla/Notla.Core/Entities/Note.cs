@@ -17,6 +17,8 @@ namespace Notla.Core.Entities
         public ICollection<NoteImage> Images { get; set; }
         public bool IsApproved { get; set; } = false;
         public ICollection<DiscountCodeNote> DiscountCodes { get; set; }
+        public int ViewCount { get; set; } = 0;
+        public int SalesCount { get; set; } = 0;
         public Note()
         {
             Images = new HashSet<NoteImage>();

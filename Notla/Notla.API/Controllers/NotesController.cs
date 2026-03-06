@@ -106,5 +106,12 @@ namespace Notla.API.Controllers
             var result = await _noteService.GetFilteredAndPagedNotesAsync(filterDto);
             return Ok(result);
         }
+        [HttpGet("Trending")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetTrendingNotes()
+        {
+            var trendingNotes = await _noteService.GetTrendingNotesAsync(10);
+            return Ok(trendingNotes);
+        }
     }
 }

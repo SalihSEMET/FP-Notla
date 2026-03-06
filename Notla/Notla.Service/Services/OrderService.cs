@@ -144,6 +144,7 @@ namespace Notla.Service.Services
                 }
 
                 purchasedNoteTitles.Add(item.Note.Title);
+                item.Note.SalesCount++;
             }
 
             await _orderRepository.AddAsync(order);

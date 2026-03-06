@@ -26,7 +26,12 @@ namespace Notla.Service.Services
             var note = await _repository.Where(x => x.Id == noteId && x.IsApproved == true)
                                         .Include(x => x.Category)
                                         .SingleOrDefaultAsync();
-
+            if (note != null)
+            {
+                note.ViewCount++;
+                _repository.Update(note);
+                await _unitOfWork.CommitAsync();
+            }
             return _mapper.Map<NoteDto>(note);
         }
         public async Task<List<NoteDto>> GetNotesWithImagesAsync()
@@ -109,6 +114,34 @@ namespace Notla.Service.Services
             _repository.Update(note);
             await _unitOfWork.CommitAsync();
             _memoryCache.Remove("ApprovedNotesCache");
+        }
+        public async Task<List<NoteDto>> GetTrendingNotesAsync(int count = 10)
+        {
+            const string cacheKey = "TrendingNotesCache";
+
+            if (!_memoryCache.TryGetValue(cacheKey, out List<NoteDto> trendingNotes))
+            {
+                var notesFromDb = await _repository.Where(n => n.IsApproved == true)
+                    .Include(n => n.Images)
+                    .Include(n => n.Reviews)
+                    .AsNoTracking()
+                    .ToListAsync();
+                var sortedNotes = notesFromDb
+                    .OrderByDescending(n =>
+                        (n.SalesCount * 50) +
+                        (n.ViewCount * 2) +
+                        (n.Reviews.Any() ? n.Reviews.Average(r => r.Rating) * 20 : 0)
+                    )
+                    .Take(count)
+                    .ToList();
+                trendingNotes = _mapper.Map<List<NoteDto>>(sortedNotes);
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
+
+                _memoryCache.Set(cacheKey, trendingNotes, cacheOptions);
+            }
+
+            return trendingNotes;
         }
     }
 }
