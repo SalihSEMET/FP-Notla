@@ -129,6 +129,7 @@ builder.Services.AddScoped<INoteReviewService, NoteReviewService>();
 builder.Services.AddScoped<IUserFavoriteService, UserFavoriteService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, Notla.API.Services.SignalRNotificationService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddMemoryCache();
 var app = builder.Build();
 

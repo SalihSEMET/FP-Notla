@@ -5,6 +5,9 @@ namespace Notla.Core.Entities
         public string Code { get; set; }
         public decimal DiscountPercentage { get; set; }
         public bool IsActive { get; set; }
-        public DateTime ExpiryDate { get; set; }
+        public DateTime ExpirationDate { get; set; }
+        public int? SellerId { get; set; }
+        public decimal? MinimumCartAmount { get; set; }
+        public ICollection<DiscountCodeNote> ApplicableNotes { get; set; }
     }
 }

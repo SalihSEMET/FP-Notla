@@ -54,22 +54,43 @@ namespace Notla.Service.Services
             var buyer = await _userManager.FindByIdAsync(userId.ToString());
             if (buyer == null) throw new Exception("User not found.");
 
+            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
+            decimal finalTotalAmount = originalTotalAmount;
             decimal discountMultiplier = 1m;
+            List<int> applicableNoteIds = new List<int>();
 
             if (!string.IsNullOrWhiteSpace(discountCode))
             {
                 var discount = await _discountRepository
-                    .Where(d => d.Code == discountCode && d.IsActive && d.ExpiryDate > DateTime.Now)
+                    .Where(d => d.Code == discountCode && d.IsActive && d.ExpirationDate > DateTime.Now)
+                    .Include(d => d.ApplicableNotes)
                     .FirstOrDefaultAsync();
 
                 if (discount == null)
                     throw new Exception("Invalid or expired discount code!");
 
-                discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
-            }
+                if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+                {
+                    decimal sellerSubtotal = cart.CartItems
+                        .Where(ci => ci.Note.SellerId == discount.SellerId)
+                        .Sum(ci => ci.Note.Price ?? 0);
 
-            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
-            decimal finalTotalAmount = originalTotalAmount * discountMultiplier;
+                    if (sellerSubtotal < discount.MinimumCartAmount.Value)
+                        throw new Exception($"Insufficient balance for this seller's coupon! Minimum required: {discount.MinimumCartAmount.Value} TL");
+                }
+                discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
+                applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
+
+
+                finalTotalAmount = 0;
+                foreach (var item in cart.CartItems)
+                {
+                    if (applicableNoteIds.Contains(item.NoteId))
+                        finalTotalAmount += (item.Note.Price ?? 0) * discountMultiplier;
+                    else
+                        finalTotalAmount += (item.Note.Price ?? 0);
+                }
+            }
 
             if (buyer.WalletBalance < finalTotalAmount)
                 throw new Exception($"Insufficient balance! Discounted Basket amount: {finalTotalAmount} TL, Your balance: {buyer.WalletBalance} TL");
@@ -89,12 +110,14 @@ namespace Notla.Service.Services
             foreach (var item in cart.CartItems)
             {
                 decimal itemOriginalPrice = item.Note.Price ?? 0;
-                decimal itemDiscountedPrice = itemOriginalPrice * discountMultiplier;
+                decimal currentItemDiscountedPrice = applicableNoteIds.Contains(item.NoteId)
+                    ? itemOriginalPrice * discountMultiplier
+                    : itemOriginalPrice;
 
                 order.OrderItems.Add(new OrderItem
                 {
                     NoteId = item.NoteId,
-                    Price = itemDiscountedPrice
+                    Price = currentItemDiscountedPrice
                 });
 
                 await _purchasedNoteRepository.AddAsync(new UserPurchasedNote
@@ -102,10 +125,9 @@ namespace Notla.Service.Services
                     UserId = userId,
                     NoteId = item.NoteId
                 });
-
                 decimal commissionRate = 0.10m;
-                decimal platformCut = itemDiscountedPrice * commissionRate;
-                decimal sellerCut = itemDiscountedPrice - platformCut;
+                decimal platformCut = currentItemDiscountedPrice * commissionRate;
+                decimal sellerCut = currentItemDiscountedPrice - platformCut;
 
                 var seller = await _userManager.FindByIdAsync(item.Note.SellerId.ToString());
                 if (seller != null)
@@ -129,11 +151,9 @@ namespace Notla.Service.Services
 
             await _userManager.UpdateAsync(buyer);
             await _unitOfWork.CommitAsync();
-
             try
             {
                 string subject = "Note - Your order has been successfully received.";
-
                 string body = $@"
                     <h2>Hello {buyer.UserName}, Thank you for choosing us.</h2>
                     <p>Your order has been successfully confirmed and you have received the notes. <b>To your library</b> added</p>
@@ -165,8 +185,9 @@ namespace Notla.Service.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Live notification could not be sent:{ex.Message}");
+                Console.WriteLine($"Live notification could not be sent: {ex.Message}");
             }
+
             return new OrderDto
             {
                 Id = order.Id,
@@ -176,7 +197,6 @@ namespace Notla.Service.Services
                 PurchasedNoteTitles = purchasedNoteTitles
             };
         }
-
         public async Task<List<LibraryItemDto>> GetMyLibraryAsync(int userId)
         {
             var purchasedNotes = await _purchasedNoteRepository.Where(p => p.UserId == userId)
