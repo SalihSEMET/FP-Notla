@@ -25,7 +25,7 @@ namespace Notla.Service.Services
 
         public async Task<NoteReviewDto> AddReviewAsync(int userId, NoteReviewCreateDto dto)
         {
-            if (dto.Rating <= 1 || dto.Rating >= 5)
+            if (dto.Rating < 1 || dto.Rating > 5)
                 throw new Exception("Rating can only be between 1 and 5.");
             var hasPurchased = await _purchasedNoteRepository
                 .Where(p => p.UserId == userId && p.NoteId == dto.NoteId)
