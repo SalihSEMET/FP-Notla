@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using System;
 namespace Notla.Core.Entities
 {
     public class User : IdentityUser<int>
@@ -11,5 +10,7 @@ namespace Notla.Core.Entities
         public decimal WalletBalance { get; set; } = 0;
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public bool IsDeleted { get; set; } = false;
+        public ICollection<UserFollower> Following { get; set; }
+        public ICollection<UserFollower> Followers { get; set; }
     }
 }

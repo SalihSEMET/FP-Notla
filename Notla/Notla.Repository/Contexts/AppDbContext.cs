@@ -73,6 +73,16 @@ namespace Notla.Repository.Contexts
             modelBuilder.Entity<OrderItem>()
             .Property(o => o.Price)
             .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<UserFollower>()
+                .HasOne(uf => uf.Follower)
+                .WithMany(u => u.Following)
+                .HasForeignKey(uf => uf.FollowerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<UserFollower>()
+                .HasOne(uf => uf.Followed)
+                .WithMany(u => u.Followers)
+                .HasForeignKey(uf => uf.FollowedId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
