@@ -13,7 +13,7 @@ namespace Notla.Service.Mapping
             CreateMap<Note, NoteDto>()
             .ForMember(dest => dest.CoverImageUrl, opt =>
             opt.MapFrom(src => src.Images.Where(x => x.IsCover).Select(x => x.ImageUrl).FirstOrDefault()))
-            .ForMember(dest => dest.AvarageRating, opt => opt.MapFrom(src => src.Reviews.Any() ? Math.Round(src.Reviews.Average(r => r.Rating), 1) : 0))
+            .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Reviews.Any() ? Math.Round(src.Reviews.Average(r => r.Rating), 1) : 0))
             .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.Reviews.Count));
         }
     }

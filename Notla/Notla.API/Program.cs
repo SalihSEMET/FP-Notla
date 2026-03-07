@@ -132,6 +132,16 @@ builder.Services.AddScoped<INotificationService, Notla.API.Services.SignalRNotif
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IFollowerService, FollowerService>();
 builder.Services.AddMemoryCache();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -140,7 +150,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("AllowAll");
+app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCustomException();

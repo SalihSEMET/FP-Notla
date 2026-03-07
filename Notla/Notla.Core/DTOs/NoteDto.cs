@@ -11,7 +11,9 @@ namespace Notla.Core.DTOs
         public string DemoPdfUrl { get; set; }
         public string CoverImageUrl { get; set; }
         public List<string> SampleImageUrls { get; set; }
-        public double AvarageRating { get; set; }
+        public decimal Rating { get; set; }
         public int ReviewCount { get; set; }
+        public int ViewCount { get; set; }
+        public int SalesCount { get; set; }
     }
 }

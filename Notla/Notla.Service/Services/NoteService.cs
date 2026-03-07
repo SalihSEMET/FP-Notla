@@ -25,14 +25,22 @@ namespace Notla.Service.Services
         {
             var note = await _repository.Where(x => x.Id == noteId && x.IsApproved == true)
                                         .Include(x => x.Category)
+                                        .Include(x => x.Images)
+                                        .Include(x => x.Reviews)
                                         .SingleOrDefaultAsync();
             if (note != null)
             {
                 note.ViewCount++;
                 _repository.Update(note);
                 await _unitOfWork.CommitAsync();
+
+                var mappedDto = _mapper.Map<NoteDto>(note);
+                mappedDto.Rating = note.Reviews != null && note.Reviews.Any()
+                    ? Math.Round((decimal)note.Reviews.Average(r => r.Rating), 1)
+                    : 0;
+                return mappedDto;
             }
-            return _mapper.Map<NoteDto>(note);
+            return null;
         }
         public async Task<List<NoteDto>> GetNotesWithImagesAsync()
         {
@@ -135,6 +143,13 @@ namespace Notla.Service.Services
                     .Take(count)
                     .ToList();
                 trendingNotes = _mapper.Map<List<NoteDto>>(sortedNotes);
+                foreach (var noteDto in trendingNotes)
+                {
+                    var dbNote = sortedNotes.First(n => n.Id == noteDto.Id);
+                    noteDto.Rating = dbNote.Reviews != null && dbNote.Reviews.Any()
+                        ? Math.Round((decimal)dbNote.Reviews.Average(r => r.Rating), 1)
+                        : 0;
+                }
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
 

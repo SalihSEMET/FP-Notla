@@ -29,6 +29,7 @@ namespace Notla.API.Controllers
             return Ok(notesDtos);
         }
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetById(int id)
         {
             var note = await _noteService.GetNoteWithCategoryByIdAsync(id);
