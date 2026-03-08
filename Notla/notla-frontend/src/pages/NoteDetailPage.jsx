@@ -1,26 +1,29 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function NoteDetailPage() {
   const { id } = useParams(); 
+  const navigate = useNavigate();
+  
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState("");
+  
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState(""); 
 
-  const backendUrl = "http://localhost:5261"; 
+  const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
     axios.get(`${backendUrl}/api/Notes/${id}`)
       .then((response) => {
         setNote(response.data);
-        
         if (response.data.coverImageUrl) {
             setMainImage(`${backendUrl}${response.data.coverImageUrl}`);
         } else {
             setMainImage("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
         }
-        
         setLoading(false);
       })
       .catch((error) => {
@@ -29,21 +32,55 @@ function NoteDetailPage() {
       });
   }, [id]);
 
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem("notla_token"); 
+
+    if (!token) {
+      alert("Please log in to add items to your cart.");
+      navigate("/login");
+      return;
+    }
+
+    setIsAddingToCart(true);
+    setCartMessage("");
+
+    try {
+      await axios.post(
+        `${backendUrl}/api/Cart/Add/${id}`, 
+        null,
+        {
+          headers: {
+            Authorization: `Bearer ${token}` 
+          }
+        }
+      );
+      
+      setCartMessage("✅ Successfully added to cart!");
+      
+      setTimeout(() => setCartMessage(""), 3000);
+      
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      const errorMessage = error.response && error.response.data 
+        ? error.response.data 
+        : "Could not add to cart. An unexpected error occurred.";
+        
+      setCartMessage(`❌ ${errorMessage}`);
+      setTimeout(() => setCartMessage(""), 4000);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   if (loading) return <div className="text-center py-20 text-2xl font-bold text-blue-500 animate-pulse">Loading note...</div>;
   if (!note) return <div className="text-center py-20 text-2xl text-red-500">Note not found!</div>;
 
   const galleryImages = [];
-  
-  if (note.coverImageUrl) {
-    galleryImages.push(`${backendUrl}${note.coverImageUrl}`);
-  } else {
-    galleryImages.push("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
-  }
+  if (note.coverImageUrl) galleryImages.push(`${backendUrl}${note.coverImageUrl}`);
+  else galleryImages.push("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
 
   if (note.sampleImageUrls && note.sampleImageUrls.length > 0) {
-    note.sampleImageUrls.forEach(url => {
-      galleryImages.push(`${backendUrl}${url}`);
-    });
+    note.sampleImageUrls.forEach(url => galleryImages.push(`${backendUrl}${url}`));
   }
 
   return (
@@ -73,7 +110,7 @@ function NoteDetailPage() {
           </div>
         </div>
 
-        {/* ================= RIGHT COLUMN: PRODUCT INFO & ACTION BUTTONS ================= */}
+        {/* ================= RIGHT COLUMN: PRODUCT INFO ================= */}
         <div className="flex flex-col">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
@@ -101,12 +138,24 @@ function NoteDetailPage() {
           </div>
 
           <div className="flex flex-col space-y-3 mt-auto">
+            {}
+            {cartMessage && (
+              <div className={`text-center py-2 rounded-lg font-bold ${cartMessage.includes("✅") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {cartMessage}
+              </div>
+            )}
+
             <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors flex justify-center items-center">
               📄 Review Free Demo PDF
             </button>
             
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg hover:shadow-blue-500/30 flex justify-center items-center text-lg">
-              🛒 Add to Cart
+            {}
+            <button 
+              onClick={handleAddToCart}
+              disabled={isAddingToCart}
+              className={`w-full text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex justify-center items-center text-lg ${isAddingToCart ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30'}`}
+            >
+              {isAddingToCart ? "Adding to Cart..." : "🛒 Add to Cart"}
             </button>
           </div>
         </div>

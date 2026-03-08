@@ -31,24 +31,43 @@ namespace Notla.Service.Services
         public async Task AddToCartAsync(int userId, int noteId)
         {
             var note = await _noteRepository.Where(n => n.Id == noteId && n.IsApproved == true).FirstOrDefaultAsync();
-            if (note == null) throw new Exception("This note was either not found or has not yet been approved by the Admin!");
+            if (note == null) throw new Exception("This note was either not found or has not yet been approved by the Admin.");
+
             if (note.SellerId == userId)
                 throw new Exception("You can't buy a note that you yourself have put up for sale.");
+
             var alreadyPurchased = await _purchasedNoteRepository.Where(p => p.UserId == userId && p.NoteId == noteId).AnyAsync();
             if (alreadyPurchased)
                 throw new Exception("This note is already in your library! You cannot purchase it again.");
+
             var cart = await _cartRepository.Where(c => c.UserId == userId)
-            .Include(c => c.CartItems)
-            .FirstOrDefaultAsync();
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync();
+
             if (cart == null)
             {
                 cart = new Cart { UserId = userId };
                 await _cartRepository.AddAsync(cart);
                 await _unitOfWork.CommitAsync();
             }
-            if (cart.CartItems.Any(ci => ci.NoteId == noteId))
+
+            var existingCartItem = cart.CartItems.FirstOrDefault(ci => ci.NoteId == noteId);
+
+            if (existingCartItem != null)
             {
-                throw new Exception("This note is already in your cart.");
+                if (existingCartItem.IsActive)
+                {
+                    throw new Exception("This note is already in your cart.");
+                }
+                else
+                {
+                    existingCartItem.IsActive = true;
+
+                    _carItemRepository.Update(existingCartItem);
+                    await _unitOfWork.CommitAsync();
+
+                    return;
+                }
             }
             await _carItemRepository.AddAsync(new CartItem
             {
@@ -69,7 +88,9 @@ namespace Notla.Service.Services
             {
                 Id = cart.Id,
                 UserId = cart.UserId,
-                CartItems = cart.CartItems.Select(ci => new CartItemDto
+                CartItems = cart.CartItems
+                .Where(ci => ci.IsActive)
+                .Select(ci => new CartItemDto
                 {
                     Id = ci.Id,
                     NoteId = ci.NoteId,
@@ -83,11 +104,13 @@ namespace Notla.Service.Services
         public async Task RemoveFromCartAsync(int cartItemId)
         {
             var cartItem = await _carItemRepository.Where(ci => ci.Id == cartItemId).FirstOrDefaultAsync();
-            if (cartItem != null)
+            if (cartItem == null)
             {
-                _carItemRepository.Remove(cartItem);
-                await _unitOfWork.CommitAsync();
+                throw new Exception("The item could not be found in the cart!");
             }
+
+            _carItemRepository.Remove(cartItem);
+            await _unitOfWork.CommitAsync();
         }
     }
 }

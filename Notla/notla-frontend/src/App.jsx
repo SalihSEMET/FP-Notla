@@ -2,7 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
-import NoteDetailPage from './pages/NoteDetailPage'; 
+import NoteDetailPage from './pages/NoteDetailPage';
+import CartPage from './pages/CartPage';
 
 function App() {
   return (
@@ -13,7 +14,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/note/:id" element={<NoteDetailPage />} /> {}
+          <Route path="/note/:id" element={<NoteDetailPage />} />
+          <Route path="/cart" element={<CartPage />} />
         </Routes>
       </main>
     </div>

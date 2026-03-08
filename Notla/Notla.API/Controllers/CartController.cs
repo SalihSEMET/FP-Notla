@@ -42,8 +42,15 @@ namespace Notla.API.Controllers
         [HttpDelete("Remove/{cartItemId}")]
         public async Task<IActionResult> RemoveFromCart(int cartItemId)
         {
-            await _cartService.RemoveFromCartAsync(cartItemId);
-            return Ok("Note successfully removed from cart.");
+            try
+            {
+                await _cartService.RemoveFromCartAsync(cartItemId);
+                return Ok("Note successfully removed from cart.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
