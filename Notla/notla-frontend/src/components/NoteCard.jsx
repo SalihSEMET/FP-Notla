@@ -1,11 +1,16 @@
 import { Link } from 'react-router-dom';
 
 function NoteCard({ note }) {
+  const backendUrl = "http://localhost:5261";
+  const coverImage = note.coverImageUrl 
+    ? `${backendUrl}${note.coverImageUrl}` 
+    : "https://placehold.co/600x400/e2e8f0/475569?text=No+Image";
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-100 flex flex-col">
-      {}
-      <div className="h-40 bg-blue-50 flex items-center justify-center">
-        <span className="text-blue-300 text-5xl">📄</span>
+      
+      <div className="h-48 bg-gray-50 flex items-center justify-center overflow-hidden">
+        <img src={coverImage} alt={note.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
       </div>
       
       {}
@@ -24,9 +29,9 @@ function NoteCard({ note }) {
 
         {}
         <div className="flex justify-between text-sm text-gray-500 mb-4 border-t pt-3 mt-auto">
-          <span title="Viewing">👁️ {note.viewCount || 0}</span>
+          <span title="Views">👁️ {note.viewCount || 0}</span>
           <span title="Sales">🛒 {note.salesCount || 0}</span>
-          <span title="Point">⭐ {note.rating || 0} / 5</span>
+          <span title="Rating">⭐ {note.rating || "0.0"} / 5</span>
         </div>
 
         {}
@@ -34,7 +39,7 @@ function NoteCard({ note }) {
           to={`/note/${note.id}`} 
           className="block w-full text-center bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold py-2 rounded-lg transition-colors"
         >
-          Review the details.
+          Review the details
         </Link>
       </div>
     </div>

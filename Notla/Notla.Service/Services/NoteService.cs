@@ -38,6 +38,10 @@ namespace Notla.Service.Services
                 mappedDto.Rating = note.Reviews != null && note.Reviews.Any()
                     ? Math.Round((decimal)note.Reviews.Average(r => r.Rating), 1)
                     : 0;
+                mappedDto.SampleImageUrls = note.Images != null && note.Images.Any()
+                    ? note.Images.Select(img => img.ImageUrl).ToList()
+                    : new List<string>();
+
                 return mappedDto;
             }
             return null;
