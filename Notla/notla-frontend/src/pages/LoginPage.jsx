@@ -82,7 +82,7 @@ function LoginPage() {
         </form>
         
         <div className="mt-6 text-center text-sm text-gray-500">
-          Don't have an account yet? <span className="text-blue-600 font-bold cursor-pointer hover:underline">Sign up here</span>
+          Don't have an account yet? <span onClick={() => navigate('/register')} className="text-blue-600 font-bold cursor-pointer hover:underline ml-1">Sign up here</span>
         </div>
       </div>
     </div>
