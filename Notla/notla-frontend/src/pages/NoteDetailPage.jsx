@@ -3,15 +3,15 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function NoteDetailPage() {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState("");
-  
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [cartMessage, setCartMessage] = useState(""); 
+  const [cartMessage, setCartMessage] = useState("");
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   const backendUrl = "http://localhost:5261";
 
@@ -33,8 +33,7 @@ function NoteDetailPage() {
   }, [id]);
 
   const handleAddToCart = async () => {
-    const token = localStorage.getItem("notla_token"); 
-
+    const token = localStorage.getItem("notla_token");
     if (!token) {
       alert("Please log in to add items to your cart.");
       navigate("/login");
@@ -46,25 +45,21 @@ function NoteDetailPage() {
 
     try {
       await axios.post(
-        `${backendUrl}/api/Cart/Add/${id}`, 
+        `${backendUrl}/api/Cart/Add/${id}`,
         null,
         {
           headers: {
-            Authorization: `Bearer ${token}` 
+            Authorization: `Bearer ${token}`
           }
         }
       );
-      
       setCartMessage("✅ Successfully added to cart!");
-      
       setTimeout(() => setCartMessage(""), 3000);
-      
     } catch (error) {
       console.error("Add to cart error:", error);
-      const errorMessage = error.response && error.response.data 
-        ? error.response.data 
+      const errorMessage = error.response && error.response.data
+        ? error.response.data
         : "Could not add to cart. An unexpected error occurred.";
-        
       setCartMessage(`❌ ${errorMessage}`);
       setTimeout(() => setCartMessage(""), 4000);
     } finally {
@@ -84,22 +79,20 @@ function NoteDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-8 px-4 relative">
       <Link to="/" className="text-blue-500 hover:underline mb-6 inline-block">
         &larr; Back to Home
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-        
-        {/* ================= LEFT COLUMN: IMAGE GALLERY ================= */}
         <div className="flex flex-col space-y-4">
           <div className="w-full h-[500px] bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center">
             <img src={mainImage} alt={note.title} className="max-h-full object-contain" />
           </div>
-          
+
           <div className="flex space-x-4 overflow-x-auto pb-2">
             {galleryImages.map((imgUrl, index) => (
-              <div 
+              <div
                 key={index}
                 onClick={() => setMainImage(imgUrl)}
                 className={`w-24 h-32 flex-shrink-0 rounded-lg border-2 cursor-pointer overflow-hidden ${mainImage === imgUrl ? 'border-blue-600 shadow-md' : 'border-gray-200 hover:border-blue-400'}`}
@@ -110,16 +103,15 @@ function NoteDetailPage() {
           </div>
         </div>
 
-        {/* ================= RIGHT COLUMN: PRODUCT INFO ================= */}
         <div className="flex flex-col">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
               Category: {note.categoryId}
             </span>
           </div>
-          
+
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{note.title}</h1>
-          
+
           <div className="flex items-center space-x-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
             <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating || "0.0"}</b> / 5</span>
             <span className="flex items-center">👁️ <b className="ml-1 text-gray-800">{note.viewCount || 0}</b> Views</span>
@@ -133,24 +125,34 @@ function NoteDetailPage() {
           <div className="mb-8 flex-1">
             <h3 className="text-lg font-bold text-gray-800 mb-2">Note Description</h3>
             <p className="text-gray-600 leading-relaxed">
-              {note.content || "No detailed description has been provided for this note yet. However, we are confident that its content will be highly valuable to you."}
+              {note.content || "No detailed description has been provided for this note yet."}
             </p>
           </div>
 
           <div className="flex flex-col space-y-3 mt-auto">
-            {}
             {cartMessage && (
               <div className={`text-center py-2 rounded-lg font-bold ${cartMessage.includes("✅") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                 {cartMessage}
               </div>
             )}
 
-            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors flex justify-center items-center">
-              📄 Review Free Demo PDF
-            </button>
-            
-            {}
-            <button 
+            {note.demoPdfUrl ? (
+              <button
+                onClick={() => setShowPdfModal(true)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors flex justify-center items-center shadow-sm"
+              >
+                📄 Review Free Demo PDF
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full bg-gray-50 text-gray-400 font-bold py-3 rounded-xl cursor-not-allowed flex justify-center items-center border border-gray-100"
+              >
+                📄 Demo PDF Not Available
+              </button>
+            )}
+
+            <button
               onClick={handleAddToCart}
               disabled={isAddingToCart}
               className={`w-full text-white font-bold py-4 rounded-xl transition-colors shadow-lg flex justify-center items-center text-lg ${isAddingToCart ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/30'}`}
@@ -159,8 +161,30 @@ function NoteDetailPage() {
             </button>
           </div>
         </div>
-        
       </div>
+
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl relative">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800">Demo Preview: {note.title}</h2>
+              <button
+                onClick={() => setShowPdfModal(false)}
+                className="text-gray-500 hover:text-red-600 font-bold text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 w-full h-full bg-gray-200">
+              <iframe
+                src={`${backendUrl}${note.demoPdfUrl}#toolbar=0`}
+                className="w-full h-full border-0"
+                title="Demo PDF Preview"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
