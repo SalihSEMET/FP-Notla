@@ -44,7 +44,13 @@ function Navbar() {
                   <span className="font-bold tracking-wide">{userName}</span>
                 </div>
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col">
-                  
+                  <Link 
+                    to="/profile" 
+                    className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
+                  >
+                    <span>👤</span>
+                    <span>My Profile</span>
+                  </Link>
                   <Link 
                     to="/library" 
                     className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"

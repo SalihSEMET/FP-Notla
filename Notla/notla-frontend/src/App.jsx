@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import NoteDetailPage from './pages/NoteDetailPage';
 import CartPage from './pages/CartPage';
 import LibraryPage from './pages/LibraryPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/note/:id" element={<NoteDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/library" element={<LibraryPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
     </div>
