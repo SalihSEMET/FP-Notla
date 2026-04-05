@@ -41,5 +41,15 @@ namespace Notla.API.Controllers
             var library = await _orderService.GetMyLibraryAsync(userId);
             return Ok(library);
         }
+        [HttpGet("Preview")]
+        public async Task<IActionResult> PreviewCheckout([FromQuery] string discountCode)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
+
+            var newTotal = await _orderService.PreviewDiscountAsync(userId, discountCode);
+            return Ok(new { newTotal });
+        }
     }
 }

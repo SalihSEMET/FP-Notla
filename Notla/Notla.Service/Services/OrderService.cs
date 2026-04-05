@@ -230,5 +230,52 @@ namespace Notla.Service.Services
                 PurchasedNoteTitles = o.OrderItems.Select(oi => oi.Note.Title).ToList()
             }).ToList();
         }
+        public async Task<decimal> PreviewDiscountAsync(int userId, string discountCode)
+        {
+            var cart = await _cartRepository.Where(c => c.UserId == userId)
+                .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Note)
+                .FirstOrDefaultAsync();
+
+            if (cart == null || !cart.CartItems.Any())
+                throw new Exception("Your cart is empty.");
+
+            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
+
+            if (string.IsNullOrWhiteSpace(discountCode))
+                return originalTotalAmount;
+
+            var discount = await _discountRepository
+                .Where(d => d.Code == discountCode && d.IsActive && d.ExpirationDate > DateTime.Now)
+                .Include(d => d.ApplicableNotes)
+                .FirstOrDefaultAsync();
+
+            if (discount == null)
+                throw new Exception("Invalid or expired discount code!");
+
+            if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+            {
+                decimal sellerSubtotal = cart.CartItems
+                    .Where(ci => ci.Note.SellerId == discount.SellerId)
+                    .Sum(ci => ci.Note.Price ?? 0);
+
+                if (sellerSubtotal < discount.MinimumCartAmount.Value)
+                    throw new Exception($"Insufficient balance for this coupon! Minimum required: {discount.MinimumCartAmount.Value} TL");
+            }
+
+            decimal discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
+            var applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
+
+            decimal finalTotalAmount = 0;
+            foreach (var item in cart.CartItems)
+            {
+                if (applicableNoteIds.Contains(item.NoteId))
+                    finalTotalAmount += (item.Note.Price ?? 0) * discountMultiplier;
+                else
+                    finalTotalAmount += (item.Note.Price ?? 0);
+            }
+
+            return finalTotalAmount;
+        }
     }
 }

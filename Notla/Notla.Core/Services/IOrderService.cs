@@ -6,5 +6,6 @@ namespace Notla.Core.Services
         Task<OrderDto> CheckoutAsync(int userId, string? discountCode = null);
         Task<List<OrderDto>> GetMyOrdersAsync(int userId);
         Task<List<LibraryItemDto>> GetMyLibraryAsync(int userId);
+        Task<decimal> PreviewDiscountAsync(int userId, string discountCode);
     }
 }
