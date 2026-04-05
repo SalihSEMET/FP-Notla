@@ -13,6 +13,10 @@ function NoteDetailPage() {
   const [cartMessage, setCartMessage] = useState("");
   const [showPdfModal, setShowPdfModal] = useState(false);
 
+  const [reviews, setReviews] = useState([]);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
@@ -27,15 +31,27 @@ function NoteDetailPage() {
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching note details:", error);
+        console.error(error);
         setLoading(false);
       });
   }, [id]);
 
+  const fetchReviews = async () => {
+    setShowReviewsModal(true);
+    setReviewsLoading(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/NoteReviews/Note/${id}`);
+      setReviews(response.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   const handleAddToCart = async () => {
     const token = localStorage.getItem("notla_token");
     if (!token) {
-      alert("Please log in to add items to your cart.");
       navigate("/login");
       return;
     }
@@ -44,22 +60,15 @@ function NoteDetailPage() {
     setCartMessage("");
 
     try {
-      await axios.post(
-        `${backendUrl}/api/Cart/Add/${id}`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await axios.post(`${backendUrl}/api/Cart/Add/${id}`, null, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setCartMessage("✅ Successfully added to cart!");
       setTimeout(() => setCartMessage(""), 3000);
     } catch (error) {
-      console.error("Add to cart error:", error);
       const errorMessage = error.response && error.response.data
         ? error.response.data
-        : "Could not add to cart. An unexpected error occurred.";
+        : "Could not add to cart.";
       setCartMessage(`❌ ${errorMessage}`);
       setTimeout(() => setCartMessage(""), 4000);
     } finally {
@@ -112,11 +121,18 @@ function NoteDetailPage() {
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{note.title}</h1>
 
-          <div className="flex items-center space-x-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
+          <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
             <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating || "0.0"}</b> / 5</span>
             <span className="flex items-center">👁️ <b className="ml-1 text-gray-800">{note.viewCount || 0}</b> Views</span>
             <span className="flex items-center">🛒 <b className="ml-1 text-gray-800">{note.salesCount || 0}</b> Sales</span>
           </div>
+
+          <button 
+            onClick={fetchReviews}
+            className="text-blue-600 font-bold hover:underline mb-6 self-start text-sm bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-colors"
+          >
+            Read User Reviews ({note.reviewCount || 0})
+          </button>
 
           <div className="mb-6">
             <span className="text-4xl font-black text-blue-600">{note.price} TL</span>
@@ -164,8 +180,8 @@ function NoteDetailPage() {
       </div>
 
       {showPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-md transition-all">
+          <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl relative border border-white/20">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h2 className="text-xl font-bold text-gray-800">Demo Preview: {note.title}</h2>
               <button
@@ -181,6 +197,49 @@ function NoteDetailPage() {
                 className="w-full h-full border-0"
                 title="Demo PDF Preview"
               ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReviewsModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-md transition-all">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl relative border border-white/20">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white/80">
+              <h2 className="text-xl font-bold text-gray-800">User Reviews</h2>
+              <button onClick={() => setShowReviewsModal(false)} className="text-gray-500 hover:text-red-600 font-bold text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors">✕</button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+              {reviewsLoading ? (
+                <div className="text-center py-10 font-bold text-blue-500 animate-pulse">Loading reviews...</div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 font-medium">No reviews yet for this note.</div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map(review => (
+                    <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-300 flex-shrink-0">
+                           <img 
+                             src={review.profileImageUrl ? `${backendUrl}${review.profileImageUrl}` : "https://placehold.co/100x100/e2e8f0/475569?text=U"} 
+                             alt={review.userName} 
+                             className="w-full h-full object-cover" 
+                           />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm">{review.userName}</p>
+                          <div className="flex text-yellow-400 text-sm drop-shadow-sm">
+                            {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                          </div>
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

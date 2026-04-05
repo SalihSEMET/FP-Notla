@@ -64,13 +64,15 @@ namespace Notla.Service.Services
 
         public async Task<List<NoteReviewDto>> GetReviewsByNoteIdAsync(int noteId)
         {
-            var reviews = await _reviewRepository.Where(r => r.NoteId == noteId).ToListAsync();
+            var reviews = await _reviewRepository.Where(r => r.NoteId == noteId).Include(r => r.User).ToListAsync();
 
             return reviews.Select(r => new NoteReviewDto
             {
                 Id = r.Id,
                 NoteId = r.NoteId,
                 UserId = r.UserId,
+                UserName = r.User.UserName,
+                ProfileImageUrl = r.User.ProfileImageUrl,
                 Rating = r.Rating,
                 Comment = r.Comment
             }).ToList();

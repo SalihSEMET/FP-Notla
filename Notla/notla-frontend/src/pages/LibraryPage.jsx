@@ -9,6 +9,13 @@ function LibraryPage() {
   const [selectedPdf, setSelectedPdf] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
 
+  const [reviewModal, setReviewModal] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState("");
+
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5261";
 
@@ -55,6 +62,36 @@ function LibraryPage() {
       alert("Failed to download the PDF file. It might be missing on the server.");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const submitReview = async () => {
+    if (rating < 1 || rating > 5) return;
+    setIsSubmittingReview(true);
+    setReviewMessage("");
+
+    const token = localStorage.getItem("notla_token");
+    try {
+      await axios.post(`${backendUrl}/api/NoteReviews`, {
+        noteId: reviewModal.noteId,
+        rating: rating,
+        comment: comment.trim() !== "" ? comment.trim() : null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setReviewMessage("✅ Review submitted successfully!");
+      setTimeout(() => {
+        setReviewModal(null);
+        setRating(0);
+        setComment("");
+        setReviewMessage("");
+      }, 2000);
+    } catch (err) {
+      const msg = err.response?.data?.Message || err.response?.data || "Failed to submit review.";
+      setReviewMessage(`❌ ${msg}`);
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -110,7 +147,13 @@ function LibraryPage() {
                         disabled={downloadingId === item.noteId}
                         className={`w-full text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 ${downloadingId === item.noteId ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                       >
-                        <span>⬇️</span> {downloadingId === item.noteId ? "Downloading..." : "Download PDF"}
+                        <span>⬇️</span> {downloadingId === item.noteId ? "Downloading..." : "Download"}
+                      </button>
+                      <button
+                        onClick={() => { setReviewModal(item); setRating(0); setComment(""); setReviewMessage(""); }}
+                        className="w-full bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 border border-yellow-200"
+                      >
+                        <span>⭐</span> Rate & Review
                       </button>
                     </>
                   ) : (
@@ -143,6 +186,54 @@ function LibraryPage() {
                 className="w-full h-full border-0"
                 title="PDF Reader"
               ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-800 line-clamp-1">Review: {reviewModal.title}</h2>
+              <button onClick={() => setReviewModal(null)} className="text-gray-500 hover:text-red-600 font-bold text-xl">✕</button>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-center mb-6 space-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="text-4xl focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <span className={(hoverRating || rating) >= star ? "text-yellow-400 drop-shadow-md" : "text-gray-200"}>★</span>
+                  </button>
+                ))}
+              </div>
+              
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Write your review here (optional)..."
+                className="w-full border border-gray-300 rounded-xl p-4 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32 mb-4"
+              ></textarea>
+
+              {reviewMessage && (
+                <div className={`mb-4 text-center p-3 rounded-lg font-bold text-sm ${reviewMessage.includes("✅") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                  {reviewMessage}
+                </div>
+              )}
+
+              <button
+                onClick={submitReview}
+                disabled={rating === 0 || isSubmittingReview}
+                className={`w-full font-bold py-3 rounded-xl transition-colors shadow-md text-white ${rating === 0 || isSubmittingReview ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
+              </button>
             </div>
           </div>
         </div>
