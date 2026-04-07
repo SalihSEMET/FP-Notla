@@ -8,6 +8,7 @@ import LibraryPage from './pages/LibraryPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import SellNotePage from './pages/SellNotePage';
+import AdminPanelPage from './pages/AdminPanelPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/sell-note" element={<SellNotePage />} />
+          <Route path="/admin" element={<AdminPanelPage />} />
         </Routes>
       </main>
     </div>

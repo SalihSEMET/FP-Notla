@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Notla.Core.Services;
 namespace Notla.API.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminController : ControllerBase

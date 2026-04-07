@@ -100,13 +100,35 @@ namespace Notla.Service.Services
                 PageSize = filter.PageSize
             };
         }
-        public async Task<List<NoteDto>> GetPendingNotesAsync()
+        public async Task<List<AdminNoteDto>> GetPendingNotesAsync()
         {
             var pendingNotes = await _repository
-            .Where(n => n.IsApproved == false)
-            .Include(n => n.Images)
-            .ToListAsync();
-            return _mapper.Map<List<NoteDto>>(pendingNotes);
+                .Where(n => n.IsApproved == false)
+                .Include(n => n.Images)
+                .ToListAsync();
+
+            var adminNotes = _mapper.Map<List<AdminNoteDto>>(pendingNotes);
+
+            foreach (var adminNote in adminNotes)
+            {
+                var originalNote = pendingNotes.First(n => n.Id == adminNote.Id);
+                
+                if (originalNote.Images != null && originalNote.Images.Any())
+                {
+                    var coverImg = originalNote.Images.FirstOrDefault(img => img.IsCover);
+                    if (coverImg != null)
+                    {
+                        adminNote.CoverImageUrl = coverImg.ImageUrl;
+                    }
+
+                    adminNote.SampleImageUrls = originalNote.Images
+                        .Where(img => !img.IsCover)
+                        .Select(img => img.ImageUrl)
+                        .ToList();
+                }
+            }
+
+            return adminNotes;
         }
         public async Task ApproveNoteAsync(int noteId)
         {

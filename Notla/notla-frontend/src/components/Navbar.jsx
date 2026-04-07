@@ -4,13 +4,18 @@ import { jwtDecode } from "jwt-decode";
 function Navbar() {
   const token = localStorage.getItem("notla_token");
   let userName = null;
+  let isAdmin = false;
 
   if (token) {
     try {
       const decodedToken = jwtDecode(token);
       userName = decodedToken["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "User";
+      
+      const roleClaim = decodedToken["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+      if (roleClaim === "Admin" || (Array.isArray(roleClaim) && roleClaim.includes("Admin"))) {
+        isAdmin = true;
+      }
     } catch (error) {
-      console.error("Invalid Token:", error);
       localStorage.removeItem("notla_token");
     }
   }
@@ -43,14 +48,27 @@ function Navbar() {
                   <span className="text-xl">👤</span>
                   <span className="font-bold tracking-wide">{userName}</span>
                 </div>
+
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col">
+                  
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="w-full text-left px-5 py-3 text-slate-800 font-bold hover:bg-slate-100 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                    >
+                      <span>🛡️</span>
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
+
                   <Link 
-                    to="/profile" 
-                    className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
+                    to="/sell-note" 
+                    className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
                   >
-                    <span>👤</span>
-                    <span>My Profile</span>
+                    <span>💸</span>
+                    <span>Sell Note</span>
                   </Link>
+
                   <Link 
                     to="/library" 
                     className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
@@ -58,13 +76,15 @@ function Navbar() {
                     <span>📚</span>
                     <span>My Library</span>
                   </Link>
+
                   <Link 
-                    to="/sell-note" 
-                    className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-green-50/50"
+                    to="/profile" 
+                    className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
                   >
-                    <span>💸</span>
-                    <span>Sell Note</span>
+                    <span>👤</span>
+                    <span>My Profile</span>
                   </Link>
+
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-5 py-3 text-red-600 font-bold hover:bg-red-50 flex items-center space-x-2 transition-colors"
