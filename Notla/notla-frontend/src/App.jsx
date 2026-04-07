@@ -7,6 +7,7 @@ import CartPage from './pages/CartPage';
 import LibraryPage from './pages/LibraryPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import SellNotePage from './pages/SellNotePage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/library" element={<LibraryPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/sell-note" element={<SellNotePage />} />
         </Routes>
       </main>
     </div>

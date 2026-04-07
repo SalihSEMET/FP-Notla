@@ -58,7 +58,13 @@ function Navbar() {
                     <span>📚</span>
                     <span>My Library</span>
                   </Link>
-
+                  <Link 
+                    to="/sell-note" 
+                    className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-green-50/50"
+                  >
+                    <span>💸</span>
+                    <span>Sell Note</span>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-5 py-3 text-red-600 font-bold hover:bg-red-50 flex items-center space-x-2 transition-colors"

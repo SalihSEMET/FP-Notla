@@ -43,6 +43,8 @@ namespace Notla.API.Controllers
             return Ok(noteDto);
         }
         [HttpPost]
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         public async Task<IActionResult> CreateNote([FromForm] NoteCreateDto noteDto)
         {
             if (noteDto.SampleImages != null && noteDto.SampleImages.Count > 15)
