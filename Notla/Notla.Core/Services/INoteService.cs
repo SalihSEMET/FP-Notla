@@ -11,5 +11,6 @@ namespace Notla.Core.Services
         Task ApproveNoteAsync(int noteId);
         Task RejectNoteAsync(int noteId);
         Task<List<NoteDto>> GetTrendingNotesAsync(int count = 10);
+        Task<List<NoteDto>> GetMySellingNotesAsync(int sellerId);
     }
 }

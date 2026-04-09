@@ -184,5 +184,36 @@ namespace Notla.Service.Services
 
             return trendingNotes;
         }
+        public async Task<List<NoteDto>> GetMySellingNotesAsync(int sellerId)
+        {
+            var myNotes = await _repository
+                .Where(n => n.SellerId == sellerId)
+                .Include(n => n.Images)
+                .Include(n => n.Reviews)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var mappedNotes = _mapper.Map<List<NoteDto>>(myNotes);
+
+            foreach (var noteDto in mappedNotes)
+            {
+                var originalNote = myNotes.First(n => n.Id == noteDto.Id);
+                
+                noteDto.Rating = originalNote.Reviews != null && originalNote.Reviews.Any() 
+                    ? Math.Round((decimal)originalNote.Reviews.Average(r => r.Rating), 1) 
+                    : 0;
+
+                if (originalNote.Images != null && originalNote.Images.Any())
+                {
+                    var coverImg = originalNote.Images.FirstOrDefault(img => img.IsCover);
+                    if (coverImg != null)
+                    {
+                        noteDto.CoverImageUrl = coverImg.ImageUrl;
+                    }
+                }
+            }
+
+            return mappedNotes;
+        }
     }
 }

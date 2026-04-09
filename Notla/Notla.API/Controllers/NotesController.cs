@@ -116,5 +116,17 @@ namespace Notla.API.Controllers
             var trendingNotes = await _noteService.GetTrendingNotesAsync(10);
             return Ok(trendingNotes);
         }
+        [Authorize]
+        [HttpGet("MySellingNotes")]
+        public async Task<IActionResult> GetMySellingNotes()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+
+            int sellerId = int.Parse(userIdString);
+            
+            var notes = await _noteService.GetMySellingNotesAsync(sellerId);
+            return Ok(notes);
+        }
     }
 }
