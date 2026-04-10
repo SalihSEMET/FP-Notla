@@ -52,12 +52,27 @@ namespace Notla.Service.Services
             if (!_memoryCache.TryGetValue(cacheKey, out List<NoteDto> cachedNotes))
             {
                 var notesFromDb = await _repository.Where(x => x.IsApproved == true)
-                .Include(x => x.Images)
-                .AsNoTracking()
-                .ToListAsync();
+                    .Include(x => x.Images)
+                    .Include(x => x.Reviews) 
+                    .AsNoTracking()
+                    .ToListAsync();
+
                 cachedNotes = _mapper.Map<List<NoteDto>>(notesFromDb);
+
+                foreach (var dto in cachedNotes)
+                {
+                    var original = notesFromDb.First(n => n.Id == dto.Id);
+                    
+                    dto.Rating = original.Reviews != null && original.Reviews.Any() 
+                        ? Math.Round((decimal)original.Reviews.Average(r => r.Rating), 1) 
+                        : 0;
+
+                    dto.ReviewCount = original.Reviews?.Count ?? 0;
+                }
+
                 var cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+                
                 _memoryCache.Set(cacheKey, cachedNotes, cacheOptions);
             }
             return cachedNotes;

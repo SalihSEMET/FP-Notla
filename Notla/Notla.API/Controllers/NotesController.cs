@@ -22,6 +22,7 @@ namespace Notla.API.Controllers
             _mapper = mapper;
             _storageService = storageService;
         }
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {

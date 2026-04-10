@@ -17,6 +17,8 @@ function NoteDetailPage() {
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
+  const [seller, setSeller] = useState(null);
+
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
@@ -35,6 +37,14 @@ function NoteDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  useEffect(() => {
+    if (note && note.sellerId) {
+      axios.get(`${backendUrl}/api/User/PublicProfile/${note.sellerId}`)
+           .then(res => setSeller(res.data))
+           .catch(err => console.error(err));
+    }
+  }, [note]);
 
   const fetchReviews = async () => {
     setShowReviewsModal(true);
@@ -121,11 +131,32 @@ function NoteDetailPage() {
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{note.title}</h1>
 
-          <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+          <div className="flex items-center space-x-6 text-sm text-gray-500 mb-6">
             <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating || "0.0"}</b> / 5</span>
             <span className="flex items-center">👁️ <b className="ml-1 text-gray-800">{note.viewCount || 0}</b> Views</span>
             <span className="flex items-center">🛒 <b className="ml-1 text-gray-800">{note.salesCount || 0}</b> Sales</span>
           </div>
+
+          {seller && (
+            <div 
+              onClick={() => navigate(`/seller/${seller.id}`)}
+              className="flex items-center gap-4 p-4 mb-6 bg-gray-50 rounded-2xl border border-gray-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all group"
+            >
+              <img 
+                src={seller.profileImageUrl ? `${backendUrl}${seller.profileImageUrl}` : "https://placehold.co/100x100/e2e8f0/475569?text=U"} 
+                alt={seller.userName} 
+                className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
+              />
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Published By</p>
+                <p className="text-lg font-black text-gray-800 group-hover:text-blue-600 transition-colors">@{seller.userName}</p>
+              </div>
+              <div className="ml-auto flex items-center gap-2 text-gray-400 group-hover:text-blue-500 transition-colors">
+                <span className="font-bold text-xs hidden sm:inline">View Store</span>
+                <span className="text-xl font-bold">➔</span>
+              </div>
+            </div>
+          )}
 
           <button 
             onClick={fetchReviews}

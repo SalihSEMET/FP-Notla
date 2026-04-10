@@ -74,5 +74,23 @@ namespace Notla.API.Controllers
 
             return BadRequest(result.Errors);
         }
+        [AllowAnonymous]
+        [HttpGet("PublicProfile/{id}")]
+        public async Task<IActionResult> GetPublicProfile(int id)
+        {
+            var user = await _userManager.FindByIdAsync(id.ToString());
+            if (user == null) return NotFound("Seller not found.");
+
+            var profile = new SellerPublicProfileDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                ProfileImageUrl = user.ProfileImageUrl,
+                Bio = user.Bio,
+                CreatedDate = user.CreatedDate
+            };
+
+            return Ok(profile);
+        }
     }
 }
