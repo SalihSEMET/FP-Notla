@@ -91,9 +91,11 @@ namespace Notla.API.Controllers
         [HttpPut]
         public async Task<IActionResult> Update(NoteUpdateDto noteUpdateDto)
         {
-            await _noteService.GetByIdAsync(noteUpdateDto.Id);
-            var noteEntity = _mapper.Map<Note>(noteUpdateDto);
-            await _noteService.UpdateAsync(noteEntity);
+            var existingNote = await _noteService.GetByIdAsync(noteUpdateDto.Id);
+
+            _mapper.Map(noteUpdateDto, existingNote);
+
+            await _noteService.UpdateAsync(existingNote);
             return NoContent();
         }
         [HttpDelete("{id}")]
