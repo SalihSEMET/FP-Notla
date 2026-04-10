@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Notla.Core.Services;
 using System.Security.Claims;
+
 namespace Notla.API.Controllers
 {
     [Authorize]
@@ -10,19 +11,22 @@ namespace Notla.API.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
+
         public OrdersController(IOrderService orderService)
         {
             _orderService = orderService;
         }
+
         [HttpPost("Checkout")]
-        public async Task<IActionResult> Checkout([FromQuery] string? discountCode = null)
+        public async Task<IActionResult> Checkout([FromQuery] List<string>? discountCodes = null)
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-            var orderDto = await _orderService.CheckoutAsync(userId, discountCode);
+            var orderDto = await _orderService.CheckoutAsync(userId, discountCodes);
             return Ok(orderDto);
         }
+
         [HttpGet("MyOrders")]
         public async Task<IActionResult> GetMyOrders()
         {
@@ -32,6 +36,7 @@ namespace Notla.API.Controllers
             var orders = await _orderService.GetMyOrdersAsync(userId);
             return Ok(orders);
         }
+
         [HttpGet("MyLibrary")]
         public async Task<IActionResult> GetMyLibrary()
         {
@@ -41,14 +46,14 @@ namespace Notla.API.Controllers
             var library = await _orderService.GetMyLibraryAsync(userId);
             return Ok(library);
         }
+
         [HttpGet("Preview")]
-        public async Task<IActionResult> PreviewCheckout([FromQuery] string discountCode)
+        public async Task<IActionResult> PreviewCheckout([FromQuery] List<string>? discountCodes = null)
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-
-            var newTotal = await _orderService.PreviewDiscountAsync(userId, discountCode);
+            var newTotal = await _orderService.PreviewDiscountAsync(userId, discountCodes);
             return Ok(new { newTotal });
         }
     }

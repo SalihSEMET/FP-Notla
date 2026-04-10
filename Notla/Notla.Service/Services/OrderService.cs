@@ -41,55 +41,75 @@ namespace Notla.Service.Services
             _emailService = emailService;
             _notificationService = notificationService;
         }
-        public async Task<OrderDto> CheckoutAsync(int userId, string? discountCode = null)
+
+        public async Task<OrderDto> CheckoutAsync(int userId, List<string>? discountCodes = null)
         {
             var cart = await _cartRepository.Where(c => c.UserId == userId)
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Note)
                 .FirstOrDefaultAsync();
 
-            if (cart == null || !cart.CartItems.Any())
+            if (cart == null || !cart.CartItems.Any(ci => ci.IsActive))
                 throw new Exception("Your cart is empty. There's nothing to buy.");
+
+            var activeCartItems = cart.CartItems.Where(ci => ci.IsActive).ToList();
 
             var buyer = await _userManager.FindByIdAsync(userId.ToString());
             if (buyer == null) throw new Exception("User not found.");
 
-            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
-            decimal finalTotalAmount = originalTotalAmount;
-            decimal discountMultiplier = 1m;
-            List<int> applicableNoteIds = new List<int>();
+            decimal finalTotalAmount = activeCartItems.Sum(ci => ci.Note.Price ?? 0);
+            Dictionary<int, decimal> itemPrices = activeCartItems.ToDictionary(ci => ci.Id, ci => ci.Note.Price ?? 0);
 
-            if (!string.IsNullOrWhiteSpace(discountCode))
+            if (discountCodes != null && discountCodes.Any())
             {
-                var discount = await _discountRepository
-                    .Where(d => d.Code == discountCode && d.IsActive && d.ExpirationDate > DateTime.Now)
+                var validDiscounts = await _discountRepository
+                    .Where(d => discountCodes.Contains(d.Code) && d.IsActive && d.ExpirationDate > DateTime.Now)
                     .Include(d => d.ApplicableNotes)
-                    .FirstOrDefaultAsync();
+                    .ToListAsync();
 
-                if (discount == null)
-                    throw new Exception("Invalid or expired discount code!");
+                if (validDiscounts.Count != discountCodes.Count)
+                    throw new Exception("One or more discount codes are invalid or expired!");
 
-                if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+                foreach (var discount in validDiscounts)
                 {
-                    decimal sellerSubtotal = cart.CartItems
-                        .Where(ci => ci.Note.SellerId == discount.SellerId)
-                        .Sum(ci => ci.Note.Price ?? 0);
+                    if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+                    {
+                        decimal sellerSubtotal = activeCartItems
+                            .Where(ci => ci.Note.SellerId == discount.SellerId)
+                            .Sum(ci => ci.Note.Price ?? 0);
 
-                    if (sellerSubtotal < discount.MinimumCartAmount.Value)
-                        throw new Exception($"Insufficient balance for this seller's coupon! Minimum required: {discount.MinimumCartAmount.Value} TL");
+                        if (sellerSubtotal < discount.MinimumCartAmount.Value)
+                            throw new Exception($"Insufficient balance for coupon {discount.Code}! Minimum required: {discount.MinimumCartAmount.Value} TL");
+                    }
+
+                    var applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
+                    var applicableItemIds = activeCartItems
+                        .Where(ci => applicableNoteIds.Contains(ci.NoteId))
+                        .Select(ci => ci.Id)
+                        .ToList();
+
+                    decimal applicableSubtotal = applicableItemIds.Sum(id => itemPrices[id]);
+
+                    if (applicableSubtotal > 0)
+                    {
+                        decimal discountMultiplier = 1m;
+                        if (discount.DiscountPercentage.HasValue && discount.DiscountPercentage.Value > 0)
+                        {
+                            discountMultiplier = (100m - discount.DiscountPercentage.Value) / 100m;
+                        }
+                        else if (discount.DiscountAmount.HasValue && discount.DiscountAmount.Value > 0)
+                        {
+                            decimal amountToDeduct = discount.DiscountAmount.Value > applicableSubtotal ? applicableSubtotal : discount.DiscountAmount.Value;
+                            discountMultiplier = (applicableSubtotal - amountToDeduct) / applicableSubtotal;
+                        }
+
+                        foreach (var id in applicableItemIds)
+                        {
+                            itemPrices[id] *= discountMultiplier;
+                        }
+                    }
                 }
-                discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
-                applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
-
-
-                finalTotalAmount = 0;
-                foreach (var item in cart.CartItems)
-                {
-                    if (applicableNoteIds.Contains(item.NoteId))
-                        finalTotalAmount += (item.Note.Price ?? 0) * discountMultiplier;
-                    else
-                        finalTotalAmount += (item.Note.Price ?? 0);
-                }
+                finalTotalAmount = itemPrices.Values.Sum();
             }
 
             if (buyer.WalletBalance < finalTotalAmount)
@@ -107,12 +127,9 @@ namespace Notla.Service.Services
 
             var purchasedNoteTitles = new List<string>();
 
-            foreach (var item in cart.CartItems)
+            foreach (var item in activeCartItems)
             {
-                decimal itemOriginalPrice = item.Note.Price ?? 0;
-                decimal currentItemDiscountedPrice = applicableNoteIds.Contains(item.NoteId)
-                    ? itemOriginalPrice * discountMultiplier
-                    : itemOriginalPrice;
+                decimal currentItemDiscountedPrice = itemPrices[item.Id];
 
                 order.OrderItems.Add(new OrderItem
                 {
@@ -125,6 +142,7 @@ namespace Notla.Service.Services
                     UserId = userId,
                     NoteId = item.NoteId
                 });
+
                 decimal commissionRate = 0.10m;
                 decimal platformCut = currentItemDiscountedPrice * commissionRate;
                 decimal sellerCut = currentItemDiscountedPrice - platformCut;
@@ -148,10 +166,11 @@ namespace Notla.Service.Services
             }
 
             await _orderRepository.AddAsync(order);
-            _cartItemRepository.RemoveRange(cart.CartItems);
+            _cartItemRepository.RemoveRange(activeCartItems);
 
             await _userManager.UpdateAsync(buyer);
             await _unitOfWork.CommitAsync();
+
             try
             {
                 string subject = "Note - Your order has been successfully received.";
@@ -175,9 +194,10 @@ namespace Notla.Service.Services
             {
                 Console.WriteLine($"Mail gönderilemedi: {ex.Message}");
             }
+
             try
             {
-                var sellerIds = cart.CartItems.Select(ci => ci.Note.SellerId).Distinct().ToList();
+                var sellerIds = activeCartItems.Select(ci => ci.Note.SellerId).Distinct().ToList();
                 foreach (var sellerId in sellerIds)
                 {
                     string message = $"Congratulations One of your notes on the site was just purchased by {buyer.UserName}";
@@ -198,6 +218,7 @@ namespace Notla.Service.Services
                 PurchasedNoteTitles = purchasedNoteTitles
             };
         }
+
         public async Task<List<LibraryItemDto>> GetMyLibraryAsync(int userId)
         {
             var purchasedNotes = await _purchasedNoteRepository.Where(p => p.UserId == userId)
@@ -230,51 +251,80 @@ namespace Notla.Service.Services
                 PurchasedNoteTitles = o.OrderItems.Select(oi => oi.Note.Title).ToList()
             }).ToList();
         }
-        public async Task<decimal> PreviewDiscountAsync(int userId, string discountCode)
+
+        public async Task<decimal> PreviewDiscountAsync(int userId, List<string>? discountCodes = null)
         {
             var cart = await _cartRepository.Where(c => c.UserId == userId)
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Note)
                 .FirstOrDefaultAsync();
 
-            if (cart == null || !cart.CartItems.Any())
+            if (cart == null || !cart.CartItems.Any(ci => ci.IsActive))
                 throw new Exception("Your cart is empty.");
 
-            decimal originalTotalAmount = cart.CartItems.Sum(ci => ci.Note.Price ?? 0);
+            var activeCartItems = cart.CartItems.Where(ci => ci.IsActive).ToList();
 
-            if (string.IsNullOrWhiteSpace(discountCode))
-                return originalTotalAmount;
+            decimal finalTotalAmount = activeCartItems.Sum(ci => ci.Note.Price ?? 0);
 
-            var discount = await _discountRepository
-                .Where(d => d.Code == discountCode && d.IsActive && d.ExpirationDate > DateTime.Now)
+            if (discountCodes == null || !discountCodes.Any())
+                return finalTotalAmount;
+
+            Dictionary<int, decimal> itemPrices = activeCartItems.ToDictionary(ci => ci.Id, ci => ci.Note.Price ?? 0);
+
+            var validDiscounts = await _discountRepository
+                .Where(d => discountCodes.Contains(d.Code) && d.IsActive && d.ExpirationDate > DateTime.Now)
                 .Include(d => d.ApplicableNotes)
                 .FirstOrDefaultAsync();
 
-            if (discount == null)
-                throw new Exception("Invalid or expired discount code!");
+            var validDiscountsList = await _discountRepository
+                .Where(d => discountCodes.Contains(d.Code) && d.IsActive && d.ExpirationDate > DateTime.Now)
+                .Include(d => d.ApplicableNotes)
+                .ToListAsync();
 
-            if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+            if (validDiscountsList.Count != discountCodes.Count)
+                throw new Exception("One or more discount codes are invalid or expired!");
+
+            foreach (var discount in validDiscountsList)
             {
-                decimal sellerSubtotal = cart.CartItems
-                    .Where(ci => ci.Note.SellerId == discount.SellerId)
-                    .Sum(ci => ci.Note.Price ?? 0);
+                if (discount.MinimumCartAmount.HasValue && discount.MinimumCartAmount.Value > 0)
+                {
+                    decimal sellerSubtotal = activeCartItems
+                        .Where(ci => ci.Note.SellerId == discount.SellerId)
+                        .Sum(ci => ci.Note.Price ?? 0);
 
-                if (sellerSubtotal < discount.MinimumCartAmount.Value)
-                    throw new Exception($"Insufficient balance for this coupon! Minimum required: {discount.MinimumCartAmount.Value} TL");
+                    if (sellerSubtotal < discount.MinimumCartAmount.Value)
+                        throw new Exception($"Insufficient balance for coupon {discount.Code}! Minimum required: {discount.MinimumCartAmount.Value} TL");
+                }
+
+                var applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
+                var applicableItemIds = activeCartItems
+                    .Where(ci => applicableNoteIds.Contains(ci.NoteId))
+                    .Select(ci => ci.Id)
+                    .ToList();
+
+                decimal applicableSubtotal = applicableItemIds.Sum(id => itemPrices[id]);
+
+                if (applicableSubtotal > 0)
+                {
+                    decimal discountMultiplier = 1m;
+                    if (discount.DiscountPercentage.HasValue && discount.DiscountPercentage.Value > 0)
+                    {
+                        discountMultiplier = (100m - discount.DiscountPercentage.Value) / 100m;
+                    }
+                    else if (discount.DiscountAmount.HasValue && discount.DiscountAmount.Value > 0)
+                    {
+                        decimal amountToDeduct = discount.DiscountAmount.Value > applicableSubtotal ? applicableSubtotal : discount.DiscountAmount.Value;
+                        discountMultiplier = (applicableSubtotal - amountToDeduct) / applicableSubtotal;
+                    }
+
+                    foreach (var id in applicableItemIds)
+                    {
+                        itemPrices[id] *= discountMultiplier;
+                    }
+                }
             }
 
-            decimal discountMultiplier = (100m - discount.DiscountPercentage) / 100m;
-            var applicableNoteIds = discount.ApplicableNotes.Select(an => an.NoteId).ToList();
-
-            decimal finalTotalAmount = 0;
-            foreach (var item in cart.CartItems)
-            {
-                if (applicableNoteIds.Contains(item.NoteId))
-                    finalTotalAmount += (item.Note.Price ?? 0) * discountMultiplier;
-                else
-                    finalTotalAmount += (item.Note.Price ?? 0);
-            }
-
+            finalTotalAmount = itemPrices.Values.Sum();
             return finalTotalAmount;
         }
     }

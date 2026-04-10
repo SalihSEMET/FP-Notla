@@ -7,8 +7,8 @@ function CartPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  const [discountCode, setDiscountCode] = useState("");
-  const [appliedCode, setAppliedCode] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedCodes, setAppliedCodes] = useState([]);
   const [discountedTotal, setDiscountedTotal] = useState(null);
   const [isApplying, setIsApplying] = useState(false);
   const [discountMessage, setDiscountMessage] = useState("");
@@ -50,45 +50,80 @@ function CartPage() {
       await axios.delete(`${backendUrl}/api/Cart/Remove/${cartItemId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Ürün silinince indirim kodunu da sıfırla
       setDiscountedTotal(null);
-      setAppliedCode("");
+      setAppliedCodes([]);
       fetchCart();
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 🚀 VİZYON: İndirim Kodunu Önizleme Mekanizması
   const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) return;
+    if (!discountInput.trim()) return;
+    const code = discountInput.trim().toUpperCase();
     
+    if (appliedCodes.includes(code)) {
+        setDiscountMessage("❌ This code is already applied!");
+        return;
+    }
+
     setIsApplying(true);
     setDiscountMessage("");
     setCheckoutMessage("");
 
+    const newCodes = [...appliedCodes, code];
+
     try {
       const token = localStorage.getItem("notla_token");
-      const response = await axios.get(`${backendUrl}/api/Orders/Preview?discountCode=${encodeURIComponent(discountCode.trim())}`, {
+      const queryParams = newCodes.map(c => `discountCodes=${encodeURIComponent(c)}`).join('&');
+      
+      const response = await axios.get(`${backendUrl}/api/Orders/Preview?${queryParams}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       setDiscountedTotal(response.data.newTotal);
-      setAppliedCode(discountCode.trim());
+      setAppliedCodes(newCodes);
+      setDiscountInput("");
       setDiscountMessage("✅ Discount applied successfully!");
       
     } catch (err) {
       const d = err.response?.data;
       const msg = d ? (d.Message || d.message || d.title || (typeof d === 'string' ? d : "Invalid code.")) : "Invalid code.";
       setDiscountMessage(`❌ ${msg}`);
-      setDiscountedTotal(null);
-      setAppliedCode("");
     } finally {
       setIsApplying(false);
     }
   };
 
-  // 🛒 Checkout İşlemi
+  const handleRemoveDiscount = async (codeToRemove) => {
+      const newCodes = appliedCodes.filter(c => c !== codeToRemove);
+      
+      if (newCodes.length === 0) {
+          setAppliedCodes([]);
+          setDiscountedTotal(null);
+          setDiscountMessage("");
+          return;
+      }
+
+      setIsApplying(true);
+      try {
+        const token = localStorage.getItem("notla_token");
+        const queryParams = newCodes.map(c => `discountCodes=${encodeURIComponent(c)}`).join('&');
+        
+        const response = await axios.get(`${backendUrl}/api/Orders/Preview?${queryParams}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        setDiscountedTotal(response.data.newTotal);
+        setAppliedCodes(newCodes);
+        setDiscountMessage("✅ Coupon removed and total updated.");
+      } catch (err) {
+         setDiscountMessage("❌ Failed to update cart.");
+      } finally {
+        setIsApplying(false);
+      }
+  };
+
   const handleCheckout = async () => {
     const token = localStorage.getItem("notla_token");
     if (!token) {
@@ -101,10 +136,10 @@ function CartPage() {
     setDiscountMessage("");
 
     try {
-      const codeToUse = appliedCode || discountCode.trim();
       let url = `${backendUrl}/api/Orders/Checkout`;
-      if (codeToUse) {
-        url += `?discountCode=${encodeURIComponent(codeToUse)}`;
+      if (appliedCodes.length > 0) {
+          const queryParams = appliedCodes.map(c => `discountCodes=${encodeURIComponent(c)}`).join('&');
+          url += `?${queryParams}`;
       }
 
       await axios.post(url, null, {
@@ -112,8 +147,8 @@ function CartPage() {
       });
 
       setCheckoutMessage("✅ Order successfully completed! Notes added to your library.");
-      setDiscountCode("");
-      setAppliedCode("");
+      setDiscountInput("");
+      setAppliedCodes([]);
       setDiscountedTotal(null);
       
       setTimeout(() => {
@@ -122,7 +157,6 @@ function CartPage() {
       }, 3000);
 
     } catch (err) {
-      // 🚀 OBJECT OBJECT ÇÖZÜCÜ
       const d = err.response?.data;
       const errMsg = d ? (d.Message || d.message || d.title || (typeof d === 'string' ? d : "Unexpected error.")) : "Checkout failed.";
       setCheckoutMessage(`❌ ${errMsg}`);
@@ -183,31 +217,35 @@ function CartPage() {
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
-            {/* 🚀 APPLY BUTONLU DİNAMİK KUTU */}
             <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Discount Code</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Discount Codes</label>
+              
+              {appliedCodes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {appliedCodes.map(code => (
+                        <div key={code} className="bg-blue-50 text-blue-800 border border-blue-200 font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm">
+                            <span>{code}</span>
+                            <button onClick={() => handleRemoveDiscount(code)} className="text-blue-400 hover:text-red-500 transition-colors">✕</button>
+                        </div>
+                    ))}
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={discountCode}
-                  onChange={(e) => {
-                    setDiscountCode(e.target.value.toUpperCase());
-                    if (appliedCode) {
-                      setAppliedCode("");
-                      setDiscountedTotal(null);
-                      setDiscountMessage("");
-                    }
-                  }}
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value.toUpperCase())}
                   placeholder="Enter code here"
                   className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase transition-colors font-semibold"
                   disabled={isCheckingOut || isApplying}
                 />
                 <button
                   onClick={handleApplyDiscount}
-                  disabled={isApplying || !discountCode.trim() || appliedCode === discountCode.trim()}
+                  disabled={isApplying || !discountInput.trim()}
                   className="bg-gray-800 text-white font-bold px-5 py-3 rounded-lg hover:bg-gray-900 transition-colors disabled:bg-gray-300 shadow-sm"
                 >
-                  {isApplying ? "..." : "Apply"}
+                  {isApplying ? "..." : "Add"}
                 </button>
               </div>
               {discountMessage && (
@@ -223,7 +261,6 @@ function CartPage() {
             </div>
             <div className="border-t border-gray-100 my-4"></div>
             
-            {/* 🚀 ÜSTÜ ÇİZİLİ FİYAT VE YENİ FİYAT ANİMASYONU */}
             <div className="flex justify-between items-center mb-6">
               <span className="text-lg font-bold text-gray-900">Total</span>
               <div className="flex flex-col items-end">

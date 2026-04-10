@@ -27,6 +27,9 @@ namespace Notla.Service.Services
         {
             if (dto.ApplicableNoteIds == null || !dto.ApplicableNoteIds.Any())
                 throw new Exception("You must select at least one note to create a coupon.");
+            if (dto.DiscountPercentage == null && dto.DiscountAmount == null)
+                throw new Exception("You must specify either a percentage or a fixed amount discount.");
+
             var validNotesCount = await _noteRepository
                 .Where(n => dto.ApplicableNoteIds.Contains(n.Id) && n.SellerId == sellerId)
                 .CountAsync();
@@ -38,12 +41,14 @@ namespace Notla.Service.Services
             {
                 Code = dto.Code.ToUpper(),
                 DiscountPercentage = dto.DiscountPercentage,
+                DiscountAmount = dto.DiscountAmount,
                 ExpirationDate = dto.ExpirationDate,
                 MinimumCartAmount = dto.MinimumCartAmount,
                 SellerId = sellerId,
                 IsActive = true,
                 ApplicableNotes = new List<DiscountCodeNote>()
             };
+
             foreach (var noteId in dto.ApplicableNoteIds)
             {
                 discountCode.ApplicableNotes.Add(new DiscountCodeNote
@@ -53,6 +58,18 @@ namespace Notla.Service.Services
             }
 
             await _discountRepository.AddAsync(discountCode);
+            await _unitOfWork.CommitAsync();
+        }
+        public async Task DeleteSellerDiscountAsync(int sellerId, int discountId)
+        {
+            var discount = await _discountRepository
+                .Where(d => d.Id == discountId && d.SellerId == sellerId)
+                .FirstOrDefaultAsync();
+
+            if (discount == null)
+                throw new Exception("Discount coupon not found or you don't have permission to delete it.");
+
+            _discountRepository.Remove(discount);
             await _unitOfWork.CommitAsync();
         }
     }

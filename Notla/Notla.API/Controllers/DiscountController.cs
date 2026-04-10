@@ -30,5 +30,23 @@ namespace Notla.API.Controllers
 
             return Ok("Your seller-specific discount coupon has been successfully generated.");
         }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSellerDiscount(int id)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int sellerId = int.Parse(userIdStr);
+
+            try
+            {
+                await _discountService.DeleteSellerDiscountAsync(sellerId, id);
+                return Ok(new { message = "Discount coupon successfully deleted." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
