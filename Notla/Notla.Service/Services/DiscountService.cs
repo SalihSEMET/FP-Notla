@@ -27,6 +27,7 @@ namespace Notla.Service.Services
         {
             if (dto.ApplicableNoteIds == null || !dto.ApplicableNoteIds.Any())
                 throw new Exception("You must select at least one note to create a coupon.");
+
             if (dto.DiscountPercentage == null && dto.DiscountAmount == null)
                 throw new Exception("You must specify either a percentage or a fixed amount discount.");
 
@@ -60,6 +61,7 @@ namespace Notla.Service.Services
             await _discountRepository.AddAsync(discountCode);
             await _unitOfWork.CommitAsync();
         }
+
         public async Task DeleteSellerDiscountAsync(int sellerId, int discountId)
         {
             var discount = await _discountRepository
@@ -69,8 +71,50 @@ namespace Notla.Service.Services
             if (discount == null)
                 throw new Exception("Discount coupon not found or you don't have permission to delete it.");
 
-            _discountRepository.Remove(discount);
+            discount.IsActive = false;
+            
+            _discountRepository.Update(discount);
             await _unitOfWork.CommitAsync();
+        }
+
+        public async Task<List<DiscountCodeDto>> GetSellerDiscountsAsync(int sellerId)
+        {
+            var discounts = await _discountRepository
+                .Where(d => d.SellerId == sellerId && d.IsActive)
+                .Include(d => d.ApplicableNotes)
+                .ToListAsync();
+
+            return discounts.Select(d => new DiscountCodeDto
+            {
+                Id = d.Id,
+                Code = d.Code,
+                DiscountPercentage = d.DiscountPercentage,
+                DiscountAmount = d.DiscountAmount,
+                ExpirationDate = d.ExpirationDate,
+                MinimumCartAmount = d.MinimumCartAmount,
+                IsActive = d.IsActive,
+                ApplicableNoteIds = d.ApplicableNotes.Select(an => an.NoteId).ToList()
+            }).ToList();
+        }
+
+        public async Task<List<DiscountCodeDto>> GetDiscountsForNoteAsync(int noteId)
+        {
+            var discounts = await _discountRepository
+                .Where(d => d.IsActive && d.ExpirationDate > DateTime.Now && d.ApplicableNotes.Any(an => an.NoteId == noteId))
+                .Include(d => d.ApplicableNotes)
+                .ToListAsync();
+
+            return discounts.Select(d => new DiscountCodeDto
+            {
+                Id = d.Id,
+                Code = d.Code,
+                DiscountPercentage = d.DiscountPercentage,
+                DiscountAmount = d.DiscountAmount,
+                ExpirationDate = d.ExpirationDate,
+                MinimumCartAmount = d.MinimumCartAmount,
+                IsActive = d.IsActive,
+                ApplicableNoteIds = d.ApplicableNotes.Select(an => an.NoteId).ToList()
+            }).ToList();
         }
     }
 }

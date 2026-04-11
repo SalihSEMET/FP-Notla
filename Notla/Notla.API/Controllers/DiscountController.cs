@@ -6,7 +6,6 @@ using System.Security.Claims;
 
 namespace Notla.API.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class DiscountController : ControllerBase
@@ -18,6 +17,19 @@ namespace Notla.API.Controllers
             _discountService = discountService;
         }
 
+        [Authorize]
+        [HttpGet("MyDiscounts")]
+        public async Task<IActionResult> GetMyDiscounts()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int sellerId = int.Parse(userIdStr);
+            var discounts = await _discountService.GetSellerDiscountsAsync(sellerId);
+            return Ok(discounts);
+        }
+
+        [Authorize]
         [HttpPost("CreateSellerDiscount")]
         public async Task<IActionResult> CreateSellerDiscount([FromBody] CreateDiscountCodeDto dto)
         {
@@ -30,6 +42,8 @@ namespace Notla.API.Controllers
 
             return Ok("Your seller-specific discount coupon has been successfully generated.");
         }
+
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSellerDiscount(int id)
         {
@@ -47,6 +61,14 @@ namespace Notla.API.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("Note/{noteId}")]
+        public async Task<IActionResult> GetDiscountsForNote(int noteId)
+        {
+            var discounts = await _discountService.GetDiscountsForNoteAsync(noteId);
+            return Ok(discounts);
         }
     }
 }

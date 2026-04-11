@@ -19,6 +19,9 @@ function NoteDetailPage() {
 
   const [seller, setSeller] = useState(null);
 
+  const [availableDiscounts, setAvailableDiscounts] = useState([]);
+  const [selectedDiscount, setSelectedDiscount] = useState(null);
+
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
@@ -36,6 +39,11 @@ function NoteDetailPage() {
         console.error(error);
         setLoading(false);
       });
+      
+    axios.get(`${backendUrl}/api/Discount/Note/${id}`)
+      .then((res) => setAvailableDiscounts(res.data))
+      .catch((err) => console.error(err));
+
   }, [id]);
 
   useEffect(() => {
@@ -165,6 +173,23 @@ function NoteDetailPage() {
             Read User Reviews ({note.reviewCount || 0})
           </button>
 
+          {availableDiscounts.length > 0 && (
+              <div className="mb-6">
+                  <p className="text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wide">Available Discounts</p>
+                  <div className="flex flex-wrap gap-2">
+                      {availableDiscounts.map(discount => (
+                          <div 
+                              key={discount.id}
+                              onClick={() => setSelectedDiscount(discount)}
+                              className="bg-indigo-50 border border-indigo-200 text-indigo-800 font-bold px-3 py-1.5 rounded-lg text-sm cursor-pointer hover:bg-indigo-100 transition-colors flex items-center gap-2 shadow-sm"
+                          >
+                              <span>🎫</span> {discount.code}
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
+
           <div className="mb-6">
             <span className="text-4xl font-black text-blue-600">{note.price} TL</span>
           </div>
@@ -209,6 +234,40 @@ function NoteDetailPage() {
           </div>
         </div>
       </div>
+
+      {selectedDiscount && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm transition-all">
+              <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative border border-white/20 p-6 text-center">
+                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl block">🎫</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-indigo-800 mb-1">{selectedDiscount.code}</h2>
+                  <p className="text-indigo-500 font-bold text-sm mb-6 uppercase tracking-widest">Discount Details</p>
+                  
+                  <div className="space-y-3 mb-8 text-left bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                          <span className="text-gray-500 font-medium text-sm">Value</span>
+                          <span className="font-black text-gray-800">{selectedDiscount.discountPercentage ? `${selectedDiscount.discountPercentage}%` : `${selectedDiscount.discountAmount} TL`}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                          <span className="text-gray-500 font-medium text-sm">Min Cart</span>
+                          <span className="font-bold text-gray-800">{selectedDiscount.minimumCartAmount ? `${selectedDiscount.minimumCartAmount} TL` : 'No Limit'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-gray-500 font-medium text-sm">Expires On</span>
+                          <span className="font-bold text-gray-800">{new Date(selectedDiscount.expirationDate).toLocaleDateString()}</span>
+                      </div>
+                  </div>
+
+                  <button 
+                      onClick={() => setSelectedDiscount(null)} 
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors"
+                  >
+                      Close
+                  </button>
+              </div>
+          </div>
+      )}
 
       {showPdfModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-md transition-all">

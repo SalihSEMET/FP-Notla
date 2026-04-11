@@ -28,6 +28,21 @@ function ProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionMessage, setActionMessage] = useState("");
 
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountType, setDiscountType] = useState('percentage');
+  const [discountData, setDiscountData] = useState({
+    code: "",
+    value: "",
+    expirationDate: "",
+    minimumCartAmount: ""
+  });
+  const [selectedNoteIds, setSelectedNoteIds] = useState([]);
+  const [discountCreating, setDiscountCreating] = useState(false);
+
+  const [showManageDiscountsModal, setShowManageDiscountsModal] = useState(false);
+  const [myDiscounts, setMyDiscounts] = useState([]);
+  const [loadingDiscounts, setLoadingDiscounts] = useState(false);
+
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5261";
   const defaultAvatar = "https://placehold.co/400x400/e2e8f0/475569?text=Avatar";
@@ -58,7 +73,7 @@ function ProfilePage() {
     }
   };
 
-const fetchMySellingNotes = async () => {
+  const fetchMySellingNotes = async () => {
     const token = localStorage.getItem("notla_token");
     if (!token) return;
 
@@ -74,6 +89,44 @@ const fetchMySellingNotes = async () => {
     } finally {
       setLoadingNotes(false);
     }
+  };
+
+  const fetchMyDiscounts = async () => {
+    const token = localStorage.getItem("notla_token");
+    if (!token) return;
+
+    setLoadingDiscounts(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/Discount/MyDiscounts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMyDiscounts(response.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDiscounts(false);
+    }
+  };
+
+  const handleOpenManageDiscounts = () => {
+    setShowManageDiscountsModal(true);
+    fetchMyDiscounts();
+  };
+
+  const handleDeleteDiscount = async (id) => {
+      const token = localStorage.getItem("notla_token");
+      if (!token) return;
+
+      try {
+          await axios.delete(`${backendUrl}/api/Discount/${id}`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setActionMessage("✅ Discount Code Deleted Successfully!");
+          fetchMyDiscounts();
+          setTimeout(() => setActionMessage(""), 3000);
+      } catch (err) {
+          alert("Failed to delete discount.");
+      }
   };
 
   const handleImageChange = (e) => {
@@ -174,11 +227,63 @@ const fetchMySellingNotes = async () => {
     }
   };
 
+  const handleCreateDiscount = async (e) => {
+    e.preventDefault();
+    if (selectedNoteIds.length === 0) {
+      alert("Please select at least one note to apply this discount.");
+      return;
+    }
+
+    const token = localStorage.getItem("notla_token");
+    if (!token) return;
+
+    setDiscountCreating(true);
+
+    const payload = {
+      code: discountData.code,
+      expirationDate: new Date(discountData.expirationDate).toISOString(),
+      minimumCartAmount: discountData.minimumCartAmount ? parseFloat(discountData.minimumCartAmount) : 0,
+      applicableNoteIds: selectedNoteIds,
+      discountPercentage: discountType === 'percentage' ? parseFloat(discountData.value) : null,
+      discountAmount: discountType === 'amount' ? parseFloat(discountData.value) : null
+    };
+
+    try {
+      await axios.post(`${backendUrl}/api/Discount/CreateSellerDiscount`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setActionMessage("✅ Discount Code Created Successfully!");
+      setShowDiscountModal(false);
+      setDiscountData({ code: "", value: "", expirationDate: "", minimumCartAmount: "" });
+      setSelectedNoteIds([]);
+      setTimeout(() => setActionMessage(""), 3000);
+    } catch (err) {
+      alert(err.response?.data || "Failed to create discount code.");
+    } finally {
+      setDiscountCreating(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedNoteIds.length === myNotes.length) {
+      setSelectedNoteIds([]);
+    } else {
+      setSelectedNoteIds(myNotes.map(n => n.id));
+    }
+  };
+
+  const toggleNoteSelection = (id) => {
+    setSelectedNoteIds(prev => 
+      prev.includes(id) ? prev.filter(nId => nId !== id) : [...prev, id]
+    );
+  };
+
   if (loading) return <div className="text-center py-20 text-2xl font-bold text-blue-500 animate-pulse">Loading Profile...</div>;
   if (error) return <div className="text-center py-20 text-2xl text-red-500">{error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
+    <div className="max-w-5xl mx-auto py-12 px-4">
       <div className="flex justify-center mb-10 space-x-4">
         <button 
           onClick={() => setActiveTab('profile')}
@@ -271,11 +376,28 @@ const fetchMySellingNotes = async () => {
 
       {activeTab === 'seller' && (
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
             <h2 className="text-3xl font-black text-gray-800">My Notes on Sale</h2>
-            <button onClick={() => navigate('/sell-note')} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition-colors">
-              + Sell New Note
-            </button>
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-end">
+                <button 
+                  onClick={handleOpenManageDiscounts} 
+                  className="flex-1 sm:flex-none bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors whitespace-nowrap"
+                >
+                  ⚙️ Manage Discounts
+                </button>
+                <button 
+                  onClick={() => setShowDiscountModal(true)} 
+                  className="flex-1 sm:flex-none bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors whitespace-nowrap"
+                >
+                  🏷️ Create Discount
+                </button>
+                <button 
+                  onClick={() => navigate('/sell-note')} 
+                  className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors whitespace-nowrap"
+                >
+                  + Sell New Note
+                </button>
+            </div>
           </div>
 
           {actionMessage && (
@@ -344,6 +466,205 @@ const fetchMySellingNotes = async () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {showDiscountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl relative border border-white/20 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50">
+              <h2 className="text-xl font-black text-indigo-900">🏷️ Create Discount Code</h2>
+              <button onClick={() => setShowDiscountModal(false)} className="text-indigo-400 hover:text-red-600 font-bold text-2xl transition-colors">✕</button>
+            </div>
+            
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+                <div className="w-full md:w-1/2 p-6 border-b md:border-b-0 md:border-r border-gray-100 overflow-y-auto">
+                    <form id="discountForm" onSubmit={handleCreateDiscount} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Coupon Code</label>
+                            <input 
+                                type="text" required maxLength="15"
+                                value={discountData.code}
+                                onChange={e => setDiscountData({...discountData, code: e.target.value.toUpperCase()})}
+                                placeholder="e.g. SUMMER20"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none uppercase font-bold"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Discount Type</label>
+                            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl mb-2">
+                                <button type="button" onClick={() => setDiscountType('percentage')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${discountType === 'percentage' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}>Percentage (%)</button>
+                                <button type="button" onClick={() => setDiscountType('amount')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${discountType === 'amount' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}>Fixed Amount (TL)</button>
+                            </div>
+                            <div className="relative">
+                                <input 
+                                    type="number" step="0.01" min="0.01" required
+                                    value={discountData.value}
+                                    onChange={e => setDiscountData({...discountData, value: e.target.value})}
+                                    placeholder={discountType === 'percentage' ? "e.g. 15" : "e.g. 50"}
+                                    className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-bold"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">
+                                    {discountType === 'percentage' ? '%' : 'TL'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Expiration Date & Time</label>
+                            <input 
+                                type="datetime-local" required
+                                value={discountData.expirationDate}
+                                onChange={e => setDiscountData({...discountData, expirationDate: e.target.value})}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-medium"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Minimum Cart Amount (TL) <span className="text-gray-400 font-normal">(Optional)</span></label>
+                            <input 
+                                type="number" step="0.01" min="0"
+                                value={discountData.minimumCartAmount}
+                                onChange={e => setDiscountData({...discountData, minimumCartAmount: e.target.value})}
+                                placeholder="0.00"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-medium"
+                            />
+                        </div>
+                    </form>
+                </div>
+
+                <div className="w-full md:w-1/2 flex flex-col bg-gray-50 h-64 md:h-auto">
+                    <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                        <div>
+                            <h3 className="font-bold text-gray-800">Applicable Notes</h3>
+                            <p className="text-xs text-gray-500">{selectedNoteIds.length} of {myNotes.length} selected</p>
+                        </div>
+                        <button 
+                            type="button" 
+                            onClick={toggleSelectAll}
+                            className="text-xs font-bold px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                        >
+                            {selectedNoteIds.length === myNotes.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        {myNotes.length === 0 ? (
+                            <div className="text-center py-10 text-gray-400 font-medium">You have no notes on sale.</div>
+                        ) : (
+                            myNotes.map(note => (
+                                <div 
+                                    key={note.id} 
+                                    onClick={() => toggleNoteSelection(note.id)}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedNoteIds.includes(note.id) ? 'bg-indigo-50 border-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200'}`}
+                                >
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${selectedNoteIds.includes(note.id) ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
+                                        {selectedNoteIds.includes(note.id) && <span className="text-white text-xs font-bold">✓</span>}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-gray-800 text-sm truncate">{note.title}</p>
+                                        <p className="text-xs font-bold text-green-600">{note.price} TL</p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-5 border-t border-gray-100 bg-white">
+                <button 
+                    form="discountForm"
+                    type="submit" 
+                    disabled={discountCreating || selectedNoteIds.length === 0}
+                    className={`w-full py-4 rounded-xl font-black text-white text-lg transition-all shadow-lg ${discountCreating || selectedNoteIds.length === 0 ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30'}`}
+                >
+                    {discountCreating ? "Creating..." : "Create Discount Code"}
+                </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {showManageDiscountsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative border border-white/20 flex flex-col max-h-[85vh]">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-xl font-black text-gray-800">⚙️ Manage Discounts</h2>
+              <button onClick={() => setShowManageDiscountsModal(false)} className="text-gray-400 hover:text-red-600 font-bold text-2xl transition-colors">✕</button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+                {loadingDiscounts ? (
+                    <div className="text-center py-10 font-bold text-blue-500 animate-pulse">Loading active discounts...</div>
+                ) : myDiscounts.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+                        <span className="text-4xl mb-3 block">🎫</span>
+                        <p className="text-gray-500 font-medium text-lg">You haven't created any discount codes yet.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {myDiscounts.map(discount => {
+                            const isExpired = new Date(discount.expirationDate) < new Date();
+                            return (
+                            <div key={discount.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className="text-xl font-black text-indigo-700 tracking-wider">{discount.code}</h3>
+                                        {isExpired ? (
+                                            <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded-md border border-red-100">EXPIRED</span>
+                                        ) : (
+                                            <span className="bg-green-50 text-green-600 text-xs font-bold px-2 py-1 rounded-md border border-green-100">ACTIVE</span>
+                                        )}
+                                    </div>
+                                    <div className="text-sm font-medium text-gray-600 space-y-1 mb-3">
+                                        <p>Discount: <span className="font-bold text-gray-800">{discount.discountPercentage ? `${discount.discountPercentage}%` : `${discount.discountAmount} TL`}</span></p>
+                                        <p>Min Cart Amount: <span className="font-bold text-gray-800">{discount.minimumCartAmount ? `${discount.minimumCartAmount} TL` : 'None'}</span></p>
+                                        <p>Expires: <span className={`font-bold ${isExpired ? 'text-red-500' : 'text-gray-800'}`}>{new Date(discount.expirationDate).toLocaleString()}</span></p>
+                                        <p>Applicable Notes: <span className="font-bold text-gray-800">{discount.applicableNoteIds ? discount.applicableNoteIds.length : 0}</span> items</p>
+                                    </div>
+                                    
+                                    {discount.applicableNoteIds && discount.applicableNoteIds.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {discount.applicableNoteIds.map(noteId => {
+                                                const matchedNote = myNotes.find(n => n.id === noteId);
+                                                if (!matchedNote) return null;
+                                                return (
+                                                    <div 
+                                                        key={noteId} 
+                                                        onClick={() => navigate(`/note/${noteId}`)}
+                                                        className="w-10 h-14 bg-gray-100 rounded overflow-hidden cursor-pointer border border-gray-200 hover:border-indigo-500 hover:shadow-md transition-all flex-shrink-0"
+                                                        title={matchedNote.title}
+                                                    >
+                                                        <img 
+                                                            src={matchedNote.coverImageUrl ? `${backendUrl}${matchedNote.coverImageUrl}` : "https://placehold.co/150x200/e2e8f0/475569?text=N"} 
+                                                            alt={matchedNote.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        if(window.confirm(`Are you sure you want to delete the coupon code ${discount.code}?`)) {
+                                            handleDeleteDiscount(discount.id);
+                                        }
+                                    }}
+                                    className="w-full sm:w-auto bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold py-2 px-5 rounded-xl transition-colors border border-red-100 shadow-sm"
+                                >
+                                    Delete Coupon
+                                </button>
+                            </div>
+                        )})}
+                    </div>
+                )}
+            </div>
+          </div>
         </div>
       )}
 
