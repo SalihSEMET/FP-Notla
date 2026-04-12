@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 
 function Navbar() {
   const token = localStorage.getItem("notla_token");
+  const location = useLocation();
   let userName = null;
   let isAdmin = false;
 
@@ -34,11 +35,25 @@ function Navbar() {
         </Link>
 
         <div className="flex items-center space-x-6">
-          <Link to="/" className="font-semibold hover:text-blue-200 transition">Home</Link>
+          <Link 
+            to="/" 
+            className={`font-semibold transition ${location.pathname === '/' ? 'text-blue-200 border-b-2 border-blue-200 pb-1' : 'hover:text-blue-200'}`}
+          >
+            Home
+          </Link>
+          
+          {userName && (
+            <Link 
+              to="/foryou" 
+              className={`font-semibold transition ${location.pathname === '/foryou' ? 'text-blue-200 border-b-2 border-blue-200 pb-1' : 'hover:text-blue-200'}`}
+            >
+              For You
+            </Link>
+          )}
 
           {userName ? (
             <div className="flex items-center space-x-4">
-              <Link to="/cart" className="flex items-center space-x-1 hover:text-blue-200 transition">
+              <Link to="/cart" className="flex items-center space-x-1 hover:text-blue-200 transition ml-4">
                 <span className="text-xl">🛒</span>
                 <span className="font-semibold">Cart</span>
               </Link>
@@ -105,7 +120,7 @@ function Navbar() {
               </div>
             </div>
           ) : (
-            <Link to="/login" className="bg-white text-blue-600 font-bold px-6 py-2 rounded-lg hover:bg-blue-50 transition shadow-sm">
+            <Link to="/login" className="bg-white text-blue-600 font-bold px-6 py-2 rounded-lg hover:bg-blue-50 transition shadow-sm ml-4">
               Log In
             </Link>
           )}
