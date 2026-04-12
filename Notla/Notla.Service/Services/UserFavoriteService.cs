@@ -23,7 +23,7 @@ namespace Notla.Service.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task ToggleFavoriteAsync(int userId, int noteId)
+        public async Task<bool> ToggleFavoriteAsync(int userId, int noteId)
         {
             var noteExists = await _noteRepository.Where(n => n.Id == noteId).AnyAsync();
             if (!noteExists) throw new Exception("No such note was found.");
@@ -32,9 +32,12 @@ namespace Notla.Service.Services
                 .Where(f => f.UserId == userId && f.NoteId == noteId)
                 .FirstOrDefaultAsync();
 
+            bool isFavorite;
+
             if (existingFav != null)
             {
                 existingFav.IsActive = !existingFav.IsActive;
+                isFavorite = existingFav.IsActive;
                 _favoriteRepository.Update(existingFav);
             }
             else
@@ -45,9 +48,11 @@ namespace Notla.Service.Services
                     NoteId = noteId,
                     IsActive = true
                 });
+                isFavorite = true;
             }
 
             await _unitOfWork.CommitAsync();
+            return isFavorite;
         }
 
         public async Task<List<FavoriteItemDto>> GetUserFavoritesAsync(int userId)

@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import SellNotePage from './pages/SellNotePage';
 import AdminPanelPage from './pages/AdminPanelPage';
 import PublicSellerProfile from './pages/PublicSellerProfile';
+import FavoritesPage from './pages/FavoritesPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/sell-note" element={<SellNotePage />} />
           <Route path="/admin" element={<AdminPanelPage />} />
           <Route path="/seller/:id" element={<PublicSellerProfile />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
         </Routes>
       </main>
     </div>

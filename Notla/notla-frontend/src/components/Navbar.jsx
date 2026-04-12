@@ -85,6 +85,14 @@ function Navbar() {
                     <span>My Profile</span>
                   </Link>
 
+                  <Link 
+                    to="/favorites" 
+                    className="w-full text-left px-5 py-3 text-rose-600 font-bold hover:bg-rose-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
+                  >
+                    <span>❤️</span>
+                    <span>My Favorites</span>
+                  </Link>
+
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-5 py-3 text-red-600 font-bold hover:bg-red-50 flex items-center space-x-2 transition-colors"

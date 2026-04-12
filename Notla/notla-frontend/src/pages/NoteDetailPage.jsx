@@ -22,9 +22,14 @@ function NoteDetailPage() {
   const [availableDiscounts, setAvailableDiscounts] = useState([]);
   const [selectedDiscount, setSelectedDiscount] = useState(null);
 
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
+    const token = localStorage.getItem("notla_token");
+
     axios.get(`${backendUrl}/api/Notes/${id}`)
       .then((response) => {
         setNote(response.data);
@@ -44,6 +49,18 @@ function NoteDetailPage() {
       .then((res) => setAvailableDiscounts(res.data))
       .catch((err) => console.error(err));
 
+    if (token) {
+        axios.get(`${backendUrl}/api/UserFavorites/MyFavorites`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+            const favNotes = res.data;
+            const found = favNotes.some(f => f.noteId === parseInt(id));
+            setIsFavorite(found);
+        })
+        .catch(err => console.error(err));
+    }
+
   }, [id]);
 
   useEffect(() => {
@@ -53,6 +70,26 @@ function NoteDetailPage() {
            .catch(err => console.error(err));
     }
   }, [note]);
+
+  const handleToggleFavorite = async () => {
+    const token = localStorage.getItem("notla_token");
+    if (!token) {
+        navigate("/login");
+        return;
+    }
+
+    setIsTogglingFavorite(true);
+    try {
+        const response = await axios.post(`${backendUrl}/api/UserFavorites/Toggle/${id}`, null, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsFavorite(response.data.isFavorite);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsTogglingFavorite(false);
+    }
+  };
 
   const fetchReviews = async () => {
     setShowReviewsModal(true);
@@ -111,7 +148,19 @@ function NoteDetailPage() {
         &larr; Back to Home
       </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white p-8 rounded-2xl shadow-lg border border-gray-100 relative">
+        
+        <button 
+            onClick={handleToggleFavorite}
+            disabled={isTogglingFavorite}
+            className="absolute top-6 right-6 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:scale-110 transition-all z-10 disabled:opacity-50"
+            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+        >
+            <span className={`text-2xl ${isFavorite ? 'text-rose-500' : 'text-gray-300'}`}>
+                {isFavorite ? '❤️' : '🤍'}
+            </span>
+        </button>
+
         <div className="flex flex-col space-y-4">
           <div className="w-full h-[500px] bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center">
             <img src={mainImage} alt={note.title} className="max-h-full object-contain" />
@@ -130,14 +179,14 @@ function NoteDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col mt-4 md:mt-0">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
               Category: {note.categoryId}
             </span>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{note.title}</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-4 pr-14">{note.title}</h1>
 
           <div className="flex items-center space-x-6 text-sm text-gray-500 mb-6">
             <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating || "0.0"}</b> / 5</span>

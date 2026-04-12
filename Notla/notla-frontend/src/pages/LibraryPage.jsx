@@ -16,11 +16,14 @@ function LibraryPage() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
+  const [favorites, setFavorites] = useState([]);
+
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
     fetchLibrary();
+    fetchFavorites();
   }, []);
 
   const fetchLibrary = async () => {
@@ -39,6 +42,39 @@ function LibraryPage() {
     } catch (err) {
       setError("Failed to load your library.");
       setLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    const token = localStorage.getItem("notla_token");
+    if (!token) return;
+
+    try {
+        const response = await axios.get(`${backendUrl}/api/UserFavorites/MyFavorites`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setFavorites(response.data.map(f => f.noteId));
+    } catch (err) {
+        console.error(err);
+    }
+  };
+
+  const handleToggleFavorite = async (noteId) => {
+    const token = localStorage.getItem("notla_token");
+    if (!token) return;
+
+    try {
+        const response = await axios.post(`${backendUrl}/api/UserFavorites/Toggle/${noteId}`, null, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if(response.data.isFavorite) {
+            setFavorites(prev => [...prev, noteId]);
+        } else {
+            setFavorites(prev => prev.filter(id => id !== noteId));
+        }
+    } catch (err) {
+        console.error(err);
     }
   };
 
@@ -118,18 +154,28 @@ function LibraryPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {library.map((item) => (
-            <div key={item.noteId} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-xl transition-shadow">
+            <div key={item.noteId} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-xl transition-shadow relative">
               
-              <div className="h-56 bg-gray-50 relative border-b border-gray-100 p-4 flex items-center justify-center">
+              <button 
+                  onClick={(e) => { e.preventDefault(); handleToggleFavorite(item.noteId); }}
+                  className="absolute top-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm border border-gray-100 hover:scale-110 transition-all z-10"
+                  title={favorites.includes(item.noteId) ? "Remove from Favorites" : "Add to Favorites"}
+              >
+                  <span className={`text-xl ${favorites.includes(item.noteId) ? 'text-rose-500' : 'text-gray-300'}`}>
+                      {favorites.includes(item.noteId) ? '❤️' : '🤍'}
+                  </span>
+              </button>
+
+              <div className="h-56 bg-gray-50 relative border-b border-gray-100 p-4 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/note/${item.noteId}`)}>
                 <img
                   src={item.coverImageUrl ? `${backendUrl}${item.coverImageUrl}` : "https://placehold.co/300x400/e2e8f0/475569?text=Note+Cover"}
                   alt={item.title}
-                  className="max-h-full object-contain drop-shadow-md"
+                  className="max-h-full object-contain drop-shadow-md hover:scale-105 transition-transform"
                 />
               </div>
 
               <div className="p-5 flex flex-col flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-2" title={item.title}>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-2 cursor-pointer hover:text-blue-600 transition-colors" title={item.title} onClick={() => navigate(`/note/${item.noteId}`)}>
                   {item.title}
                 </h3>
 
