@@ -15,7 +15,12 @@ function PublicSellerProfile() {
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+
   useEffect(() => {
+    const token = localStorage.getItem("notla_token");
+
     const fetchSellerAndNotes = async () => {
       try {
         const sellerRes = await axios.get(`${backendUrl}/api/User/PublicProfile/${id}`);
@@ -31,8 +36,39 @@ function PublicSellerProfile() {
         setLoading(false);
       }
     };
+
     fetchSellerAndNotes();
+
+    if (token) {
+        axios.get(`${backendUrl}/api/Follower/MyFollowing`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(res => {
+            const found = res.data.some(f => f.userId === parseInt(id));
+            setIsFollowing(found);
+          })
+          .catch(err => console.error(err));
+    }
+
   }, [id]);
+
+  const handleToggleFollow = async () => {
+    const token = localStorage.getItem("notla_token");
+    if (!token) { 
+        navigate("/login"); 
+        return; 
+    }
+    
+    setIsTogglingFollow(true);
+    try {
+      const res = await axios.post(`${backendUrl}/api/Follower/ToggleFollow/${id}`, null, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsFollowing(res.data.isFollowing);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsTogglingFollow(false);
+    }
+  };
 
   const fetchReviews = async (noteId, e) => {
     e.stopPropagation();
@@ -54,22 +90,29 @@ function PublicSellerProfile() {
   return (
     <div className="max-w-6xl mx-auto py-12 px-4 relative">
       <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden mb-10">
-        <div className="bg-blue-600 h-32"></div>
-        <div className="px-8 pb-8 flex flex-col sm:flex-row items-center sm:items-end -mt-16 gap-6 text-center sm:text-left">
+        <div className="bg-blue-600 h-40"></div>
+        <div className="px-8 pb-8 flex flex-col sm:flex-row items-center sm:items-end -mt-20 gap-6 text-center sm:text-left">
           <img 
             src={seller.profileImageUrl ? `${backendUrl}${seller.profileImageUrl}` : "https://placehold.co/400x400/e2e8f0/475569?text=Avatar"} 
             alt="Profile" 
-            className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover bg-white"
+            className="w-36 h-36 rounded-full border-4 border-white shadow-lg object-cover bg-white"
           />
           <div className="flex-1 mb-2">
-            <h1 className="text-3xl font-black text-gray-900">@{seller.userName}</h1>
-            <p className="text-gray-500 font-medium mt-1">Joined: {new Date(seller.createdDate).toLocaleDateString()}</p>
+            <h1 className="text-3xl font-black text-white">@{seller.userName}</h1>
+            <p className="text-blue-100 font-medium mt-1 mb-3">Joined: {new Date(seller.createdDate).toLocaleDateString()}</p>
+            <button
+              onClick={handleToggleFollow}
+              disabled={isTogglingFollow}
+              className={`px-8 py-2.5 rounded-xl font-bold transition-all shadow-sm ${isFollowing ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200' : 'bg-white text-blue-600 hover:bg-gray-50 hover:shadow-md'}`}
+            >
+              {isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
           </div>
         </div>
         {seller.bio && (
           <div className="px-8 pb-8">
-            <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-              <p className="text-gray-700 italic">"{seller.bio}"</p>
+            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+              <p className="text-gray-700 italic text-lg text-center sm:text-left">"{seller.bio}"</p>
             </div>
           </div>
         )}

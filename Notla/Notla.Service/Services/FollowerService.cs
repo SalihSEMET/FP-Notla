@@ -18,30 +18,22 @@ namespace Notla.Service.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<string> ToggleFollowAsync(int followerId, int followedId)
+        public async Task<bool> ToggleFollowAsync(int followerId, int followedId)
         {
             if (followerId == followedId)
                 throw new Exception("You can't keep track of yourself.");
+
             var existingFollow = await _followerRepository
                 .Where(f => f.FollowerId == followerId && f.FollowedId == followedId)
                 .FirstOrDefaultAsync();
 
+            bool isFollowing;
+
             if (existingFollow != null)
             {
-                if (existingFollow.IsActive)
-                {
-                    existingFollow.IsActive = false;
-                    _followerRepository.Update(existingFollow);
-                    await _unitOfWork.CommitAsync();
-                    return "The follower has been unfollowed.";
-                }
-                else
-                {
-                    existingFollow.IsActive = true;
-                    _followerRepository.Update(existingFollow);
-                    await _unitOfWork.CommitAsync();
-                    return "Tracked successfully!";
-                }
+                existingFollow.IsActive = !existingFollow.IsActive;
+                isFollowing = existingFollow.IsActive;
+                _followerRepository.Update(existingFollow);
             }
             else
             {
@@ -52,10 +44,13 @@ namespace Notla.Service.Services
                     IsActive = true
                 };
                 await _followerRepository.AddAsync(newFollow);
-                await _unitOfWork.CommitAsync();
-                return "It was followed up successfully.";
+                isFollowing = true;
             }
+
+            await _unitOfWork.CommitAsync();
+            return isFollowing;
         }
+
         public async Task<List<FollowerDto>> GetMyFollowingAsync(int userId)
         {
             var followingList = await _followerRepository
@@ -65,12 +60,14 @@ namespace Notla.Service.Services
                 {
                     UserId = f.Followed.Id,
                     UserName = f.Followed.UserName,
-                    Email = f.Followed.Email
+                    Email = f.Followed.Email,
+                    ProfileImageUrl = f.Followed.ProfileImageUrl 
                 })
                 .ToListAsync();
 
             return followingList;
         }
+
         public async Task<List<FollowerDto>> GetMyFollowersAsync(int sellerId)
         {
             var followersList = await _followerRepository
@@ -80,7 +77,8 @@ namespace Notla.Service.Services
                 {
                     UserId = f.Follower.Id,
                     UserName = f.Follower.UserName,
-                    Email = f.Follower.Email
+                    Email = f.Follower.Email,
+                    ProfileImageUrl = f.Follower.ProfileImageUrl 
                 })
                 .ToListAsync();
 

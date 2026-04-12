@@ -16,6 +16,7 @@ namespace Notla.API.Controllers
         {
             _followerService = followerService;
         }
+
         [HttpPost("ToggleFollow/{followedId}")]
         public async Task<IActionResult> ToggleFollow(int followedId)
         {
@@ -23,10 +24,18 @@ namespace Notla.API.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int followerId = int.Parse(userIdStr);
-            var resultMessage = await _followerService.ToggleFollowAsync(followerId, followedId);
-
-            return Ok(new { Message = resultMessage });
+            
+            try 
+            {
+                bool isFollowing = await _followerService.ToggleFollowAsync(followerId, followedId);
+                return Ok(new { isFollowing = isFollowing });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
+
         [HttpGet("MyFollowing")]
         public async Task<IActionResult> GetMyFollowing()
         {
@@ -38,6 +47,7 @@ namespace Notla.API.Controllers
             var followingList = await _followerService.GetMyFollowingAsync(userId);
             return Ok(followingList);
         }
+
         [HttpGet("MyFollowers")]
         public async Task<IActionResult> GetMyFollowers()
         {

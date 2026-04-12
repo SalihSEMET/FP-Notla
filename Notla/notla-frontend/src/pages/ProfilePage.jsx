@@ -43,6 +43,10 @@ function ProfilePage() {
   const [myDiscounts, setMyDiscounts] = useState([]);
   const [loadingDiscounts, setLoadingDiscounts] = useState(false);
 
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [followModalType, setFollowModalType] = useState(null);
+
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5261";
   const defaultAvatar = "https://placehold.co/400x400/e2e8f0/475569?text=Avatar";
@@ -50,6 +54,7 @@ function ProfilePage() {
   useEffect(() => {
     fetchProfile();
     fetchMySellingNotes();
+    fetchFollowData();
   }, []);
 
   const fetchProfile = async () => {
@@ -70,6 +75,21 @@ function ProfilePage() {
     } catch (err) {
       setError("Failed to load profile data.");
       setLoading(false);
+    }
+  };
+
+  const fetchFollowData = async () => {
+    const token = localStorage.getItem("notla_token");
+    if(!token) return;
+    try {
+      const [followersRes, followingRes] = await Promise.all([
+        axios.get(`${backendUrl}/api/Follower/MyFollowers`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${backendUrl}/api/Follower/MyFollowing`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setFollowers(followersRes.data);
+      setFollowing(followingRes.data);
+    } catch(err) {
+      console.error(err);
     }
   };
 
@@ -320,9 +340,25 @@ function ProfilePage() {
                 <p className="text-gray-500 font-medium">@{profile.userName}</p>
               </div>
               
-              <div className="bg-blue-50 border border-blue-100 px-6 py-3 rounded-2xl text-center shadow-sm">
-                <p className="text-sm font-bold text-blue-800 uppercase tracking-wide">Wallet Balance</p>
-                <p className="text-2xl font-black text-blue-600">{profile.walletBalance} TL</p>
+              <div className="flex flex-wrap justify-center sm:justify-end gap-4 items-center">
+                <div 
+                    onClick={() => setFollowModalType('followers')} 
+                    className="bg-indigo-50 border border-indigo-100 px-5 py-2 rounded-2xl text-center shadow-sm cursor-pointer hover:bg-indigo-100 transition-colors"
+                >
+                    <p className="text-xs font-bold text-indigo-800 uppercase tracking-wide">Followers</p>
+                    <p className="text-xl font-black text-indigo-600">{followers.length}</p>
+                </div>
+                <div 
+                    onClick={() => setFollowModalType('following')} 
+                    className="bg-teal-50 border border-teal-100 px-5 py-2 rounded-2xl text-center shadow-sm cursor-pointer hover:bg-teal-100 transition-colors"
+                >
+                    <p className="text-xs font-bold text-teal-800 uppercase tracking-wide">Following</p>
+                    <p className="text-xl font-black text-teal-600">{following.length}</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-100 px-6 py-3 rounded-2xl text-center shadow-sm">
+                  <p className="text-sm font-bold text-blue-800 uppercase tracking-wide">Wallet Balance</p>
+                  <p className="text-2xl font-black text-blue-600">{profile.walletBalance} TL</p>
+                </div>
               </div>
             </div>
 
@@ -775,6 +811,43 @@ function ProfilePage() {
               <button onClick={handleDeleteNote} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl shadow-md transition-colors shadow-red-500/30">
                 Yes, Remove
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {followModalType && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm transition-all">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative flex flex-col max-h-[80vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-xl font-black text-gray-800">
+                {followModalType === 'followers' ? 'My Followers' : 'Following'}
+              </h2>
+              <button onClick={() => setFollowModalType(null)} className="text-gray-400 hover:text-red-600 font-bold text-2xl transition-colors">✕</button>
+            </div>
+            <div className="overflow-y-auto p-4 bg-gray-50">
+              {(followModalType === 'followers' ? followers : following).length === 0 ? (
+                <p className="text-center text-gray-500 py-8 font-medium">No users found.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(followModalType === 'followers' ? followers : following).map(user => (
+                    <div 
+                      key={user.userId} 
+                      onClick={() => navigate(`/seller/${user.userId}`)}
+                      className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-xl hover:shadow-md hover:border-blue-200 cursor-pointer transition-all"
+                    >
+                      <img 
+                        src={user.profileImageUrl ? `${backendUrl}${user.profileImageUrl}` : "https://placehold.co/100x100/e2e8f0/475569?text=U"}
+                        alt={user.userName}
+                        className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                      />
+                      <div>
+                        <p className="font-bold text-gray-900">@{user.userName}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

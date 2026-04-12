@@ -25,6 +25,9 @@ function NoteDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+
   const backendUrl = "http://localhost:5261";
 
   useEffect(() => {
@@ -64,10 +67,20 @@ function NoteDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    const token = localStorage.getItem("notla_token");
     if (note && note.sellerId) {
       axios.get(`${backendUrl}/api/User/PublicProfile/${note.sellerId}`)
            .then(res => setSeller(res.data))
            .catch(err => console.error(err));
+
+      if (token) {
+        axios.get(`${backendUrl}/api/Follower/MyFollowing`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(res => {
+            const found = res.data.some(f => f.userId === note.sellerId);
+            setIsFollowing(found);
+          })
+          .catch(err => console.error(err));
+      }
     }
   }, [note]);
 
@@ -88,6 +101,27 @@ function NoteDetailPage() {
         console.error(err);
     } finally {
         setIsTogglingFavorite(false);
+    }
+  };
+
+  const handleToggleFollow = async (e) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("notla_token");
+    if (!token) { 
+        navigate("/login"); 
+        return; 
+    }
+    
+    setIsTogglingFollow(true);
+    try {
+      const res = await axios.post(`${backendUrl}/api/Follower/ToggleFollow/${seller.id}`, null, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsFollowing(res.data.isFollowing);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsTogglingFollow(false);
     }
   };
 
@@ -204,10 +238,19 @@ function NoteDetailPage() {
                 alt={seller.userName} 
                 className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
               />
-              <div>
+              <div className="flex flex-col">
                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Published By</p>
                 <p className="text-lg font-black text-gray-800 group-hover:text-blue-600 transition-colors">@{seller.userName}</p>
               </div>
+              
+              <button
+                onClick={handleToggleFollow}
+                disabled={isTogglingFollow}
+                className={`ml-4 px-4 py-2 rounded-lg font-bold text-sm transition-all ${isFollowing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'}`}
+              >
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </button>
+
               <div className="ml-auto flex items-center gap-2 text-gray-400 group-hover:text-blue-500 transition-colors">
                 <span className="font-bold text-xs hidden sm:inline">View Store</span>
                 <span className="text-xl font-bold">➔</span>
