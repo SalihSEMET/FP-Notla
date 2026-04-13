@@ -7,5 +7,8 @@ namespace Notla.Core.DTOs
         public string Title { get; set; }
         public decimal Price { get; set; }
         public string CoverImageUrl { get; set; }
+        public int CategoryId { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public decimal Rating { get; set; }
     }
 }

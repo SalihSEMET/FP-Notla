@@ -15,5 +15,6 @@ namespace Notla.Core.DTOs
         public int ReviewCount { get; set; }
         public int ViewCount { get; set; }
         public int SalesCount { get; set; }
+        public DateTime CreatedDate { get; set; } 
     }
 }

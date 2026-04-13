@@ -61,6 +61,8 @@ namespace Notla.Service.Services
                 .Where(f => f.UserId == userId && f.IsActive == true)
                 .Include(f => f.Note)
                     .ThenInclude(n => n.Images)
+                .Include(f => f.Note) 
+                    .ThenInclude(n => n.Reviews)
                 .ToListAsync();
 
             return favorites.Select(f => new FavoriteItemDto
@@ -69,7 +71,12 @@ namespace Notla.Service.Services
                 NoteId = f.NoteId,
                 Title = f.Note.Title,
                 Price = f.Note.Price ?? 0,
-                CoverImageUrl = f.Note.Images.FirstOrDefault(i => i.IsCover)?.ImageUrl ?? string.Empty
+                CoverImageUrl = f.Note.Images.FirstOrDefault(i => i.IsCover)?.ImageUrl ?? string.Empty,
+                CategoryId = f.Note.CategoryId, 
+                CreatedDate = f.Note.CreatedDate, 
+                Rating = f.Note.Reviews != null && f.Note.Reviews.Any() 
+                    ? Math.Round((decimal)f.Note.Reviews.Average(r => r.Rating), 1)
+                    : 0
             }).ToList();
         }
     }

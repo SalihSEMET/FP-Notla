@@ -224,6 +224,8 @@ namespace Notla.Service.Services
             var purchasedNotes = await _purchasedNoteRepository.Where(p => p.UserId == userId)
                 .Include(p => p.Note)
                     .ThenInclude(n => n.Images)
+                .Include(p => p.Note) 
+                    .ThenInclude(n => n.Reviews)
                 .ToListAsync();
 
             return purchasedNotes.Select(p => new LibraryItemDto
@@ -231,7 +233,13 @@ namespace Notla.Service.Services
                 NoteId = p.NoteId,
                 Title = p.Note.Title,
                 CoverImageUrl = p.Note.Images.FirstOrDefault(i => i.IsCover)?.ImageUrl ?? string.Empty,
-                OriginalPdfUrl = p.Note.OriginalPdfUrl
+                OriginalPdfUrl = p.Note.OriginalPdfUrl,
+                Price = p.Note.Price ?? 0, 
+                CategoryId = p.Note.CategoryId, 
+                CreatedDate = p.Note.CreatedDate, 
+                Rating = p.Note.Reviews != null && p.Note.Reviews.Any() 
+                    ? Math.Round((decimal)p.Note.Reviews.Average(r => r.Rating), 1)
+                    : 0
             }).ToList();
         }
 

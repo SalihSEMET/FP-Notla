@@ -83,16 +83,35 @@ namespace Notla.Service.Services
                 .Include(n => n.Images)
                 .Include(n => n.Reviews)
                 .AsNoTracking();
+
             if (!string.IsNullOrWhiteSpace(filter.SearchText))
             {
                 var lowerSearch = filter.SearchText.ToLower();
                 query = query.Where(n => n.Title.ToLower().Contains(lowerSearch) ||
                                          n.Content.ToLower().Contains(lowerSearch));
             }
-            if (filter.CategoryId.HasValue && filter.CategoryId.Value > 0)
+
+            if (filter.CategoryIds != null && filter.CategoryIds.Any())
             {
-                query = query.Where(n => n.CategoryId == filter.CategoryId.Value);
+                query = query.Where(n => filter.CategoryIds.Contains(n.CategoryId));
             }
+
+            if (filter.MinPrice.HasValue)
+            {
+                query = query.Where(n => n.Price >= filter.MinPrice.Value);
+            }
+
+            if (filter.MaxPrice.HasValue)
+            {
+                query = query.Where(n => n.Price <= filter.MaxPrice.Value);
+            }
+
+            if (filter.DaysAgo.HasValue && filter.DaysAgo.Value > 0)
+            {
+                var targetDate = DateTime.Now.AddDays(-filter.DaysAgo.Value);
+                query = query.Where(n => n.CreatedDate >= targetDate);
+            }
+
             query = filter.SortBy?.ToLower() switch
             {
                 "price_asc" => query.OrderBy(n => n.Price),
@@ -101,12 +120,34 @@ namespace Notla.Service.Services
                 "newest" => query.OrderByDescending(n => n.CreatedDate),
                 _ => query.OrderByDescending(n => n.CreatedDate)
             };
+
             var totalCount = await query.CountAsync();
+            
             var pagedNotes = await query
                 .Skip((filter.PageNumber - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .ToListAsync();
+
             var noteDtos = _mapper.Map<List<NoteDto>>(pagedNotes);
+
+            foreach (var dto in noteDtos)
+            {
+                var original = pagedNotes.First(n => n.Id == dto.Id);
+                
+                dto.Rating = original.Reviews != null && original.Reviews.Any() 
+                    ? Math.Round((decimal)original.Reviews.Average(r => r.Rating), 1) 
+                    : 0;
+
+                if (original.Images != null && original.Images.Any())
+                {
+                    var coverImg = original.Images.FirstOrDefault(img => img.IsCover);
+                    if (coverImg != null)
+                    {
+                        dto.CoverImageUrl = coverImg.ImageUrl;
+                    }
+                }
+            }
+
             return new PagedResultDto<NoteDto>
             {
                 Items = noteDtos,
