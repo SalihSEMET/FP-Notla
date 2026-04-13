@@ -12,6 +12,7 @@ import AdminPanelPage from './pages/AdminPanelPage';
 import PublicSellerProfile from './pages/PublicSellerProfile';
 import FavoritesPage from './pages/FavoritesPage';
 import ForYouPage from './pages/ForYouPage';
+import AdminCategoryPage from './pages/AdminCategoryPage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/seller/:id" element={<PublicSellerProfile />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/foryou" element={<ForYouPage />} />
+          <Route path="/admin/categories" element={<AdminCategoryPage />} />
         </Routes>
       </main>
     </div>

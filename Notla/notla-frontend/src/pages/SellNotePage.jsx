@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -7,6 +7,7 @@ function SellNotePage() {
   const [content, setContent] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState([]);
   const [coverImage, setCoverImage] = useState(null);
   const [demoPdf, setDemoPdf] = useState(null);
   const [originalPdf, setOriginalPdf] = useState(null);
@@ -18,6 +19,18 @@ function SellNotePage() {
 
   const navigate = useNavigate();
   const backendUrl = "http://localhost:5261";
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/Categories`);
+        setCategories(response.data);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleMultipleFiles = (e) => {
     const files = Array.from(e.target.files);
@@ -34,6 +47,12 @@ function SellNotePage() {
     if (!token) {
       navigate("/login");
       return;
+    }
+
+    if (!categoryId) {
+        setMessage("❌ Please select a category.");
+        setIsSuccess(false);
+        return;
     }
 
     setLoading(true);
@@ -119,15 +138,20 @@ function SellNotePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Category ID</label>
-                  <input
-                    type="number"
-                    min="1"
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                  <select
                     required
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  />
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white"
+                  >
+                    <option value="" disabled>Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

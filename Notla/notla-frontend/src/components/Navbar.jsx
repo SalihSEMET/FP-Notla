@@ -67,13 +67,22 @@ function Navbar() {
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col">
                   
                   {isAdmin && (
-                    <Link 
-                      to="/admin" 
-                      className="w-full text-left px-5 py-3 text-slate-800 font-bold hover:bg-slate-100 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
-                    >
-                      <span>🛡️</span>
-                      <span>Admin Panel</span>
-                    </Link>
+                    <>
+                      <Link 
+                        to="/admin" 
+                        className="w-full text-left px-5 py-3 text-slate-800 font-bold hover:bg-slate-100 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                      >
+                        <span>🛡️</span>
+                        <span>Admin Panel</span>
+                      </Link>
+                      <Link 
+                        to="/admin/categories" 
+                        className="w-full text-left px-5 py-3 text-indigo-700 font-bold hover:bg-indigo-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                      >
+                        <span>📂</span>
+                        <span>Categories</span>
+                      </Link>
+                    </>
                   )}
 
                   <Link 

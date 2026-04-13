@@ -12,6 +12,7 @@ function NoteDetailPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState("");
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
 
   const [reviews, setReviews] = useState([]);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
@@ -42,6 +43,13 @@ function NoteDetailPage() {
             setMainImage("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
         }
         setLoading(false);
+        
+        if(response.data.categoryId) {
+            axios.get(`${backendUrl}/api/Categories/${response.data.categoryId}`)
+                .then(catRes => setCategoryName(catRes.data.name))
+                .catch(catErr => console.error(catErr));
+        }
+
       })
       .catch((error) => {
         console.error(error);
@@ -216,14 +224,14 @@ function NoteDetailPage() {
         <div className="flex flex-col mt-4 md:mt-0">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
-              Category: {note.categoryId}
+              Category: {categoryName || note.categoryId}
             </span>
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4 pr-14">{note.title}</h1>
 
           <div className="flex items-center space-x-6 text-sm text-gray-500 mb-6">
-            <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating || "0.0"}</b> / 5</span>
+            <span className="flex items-center">⭐ <b className="ml-1 text-gray-800">{note.rating > 0 ? note.rating.toFixed(1) : "0.0"}</b> / 5</span>
             <span className="flex items-center">👁️ <b className="ml-1 text-gray-800">{note.viewCount || 0}</b> Views</span>
             <span className="flex items-center">🛒 <b className="ml-1 text-gray-800">{note.salesCount || 0}</b> Sales</span>
           </div>
