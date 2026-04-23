@@ -154,7 +154,7 @@ namespace Notla.Service.Services
                     await _userManager.UpdateAsync(seller);
                 }
 
-                var adminUser = await _userManager.FindByEmailAsync("admin@notla.com");
+                var adminUser = await _userManager.FindByEmailAsync("admin.notla@gmail.com");
                 if (adminUser != null)
                 {
                     adminUser.WalletBalance += platformCut;

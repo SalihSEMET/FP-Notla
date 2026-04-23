@@ -6,6 +6,8 @@ using Notla.Core.Repositories;
 using Notla.Core.Services;
 using Notla.Core.UnitOfWork;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Identity;
+
 namespace Notla.Service.Services
 {
     public class NoteService : Service<Note>, INoteService
@@ -14,13 +16,19 @@ namespace Notla.Service.Services
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMemoryCache _memoryCache;
-        public NoteService(IGenericRepository<Note> repository, IUnitOfWork unitOfWork, IMapper mapper, IMemoryCache memoryCache) : base(repository, unitOfWork)
+        private readonly UserManager<User> _userManager;
+        private readonly IEmailService _emailService;
+
+        public NoteService(IGenericRepository<Note> repository, IUnitOfWork unitOfWork, IMapper mapper, IMemoryCache memoryCache, UserManager<User> userManager, IEmailService emailService) : base(repository, unitOfWork)
         {
             _repository = repository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _memoryCache = memoryCache;
+            _userManager = userManager;
+            _emailService = emailService;
         }
+
         public async Task<NoteDto> GetNoteWithCategoryByIdAsync(int noteId)
         {
             var note = await _repository.Where(x => x.Id == noteId && x.IsApproved == true)
@@ -46,6 +54,7 @@ namespace Notla.Service.Services
             }
             return null;
         }
+
         public async Task<List<NoteDto>> GetNotesWithImagesAsync()
         {
             const string cacheKey = "ApprovedNotesCache";
@@ -77,6 +86,7 @@ namespace Notla.Service.Services
             }
             return cachedNotes;
         }
+
         public async Task<PagedResultDto<NoteDto>> GetFilteredAndPagedNotesAsync(NoteFilterDto filter)
         {
             var query = _repository.Where(n => n.IsApproved == true)
@@ -156,6 +166,7 @@ namespace Notla.Service.Services
                 PageSize = filter.PageSize
             };
         }
+
         public async Task<List<AdminNoteDto>> GetPendingNotesAsync()
         {
             var pendingNotes = await _repository
@@ -186,25 +197,56 @@ namespace Notla.Service.Services
 
             return adminNotes;
         }
+
         public async Task ApproveNoteAsync(int noteId)
         {
             var note = await _repository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
             if (note == null) throw new Exception("No notes found to be approved.");
             if (note.IsApproved) throw new Exception("This Note Has Already Been Approved");
+            
             note.IsApproved = true;
             _repository.Update(note);
             await _unitOfWork.CommitAsync();
             _memoryCache.Remove("ApprovedNotesCache");
+
+            var seller = await _userManager.FindByIdAsync(note.SellerId.ToString());
+            if (seller != null)
+            {
+                string subject = "Your Note is Approved!";
+                string body = $@"
+                    <h2>Congratulations {seller.UserName}!</h2>
+                    <p>Your note titled <b>'{note.Title}'</b> has been approved by our moderation team.</p>
+                    <p>Due to system caching, it will be visible on the marketplace to all users within the next 10 minutes.</p>
+                    <br/>
+                    <p><b>Team Notla</b></p>";
+                await _emailService.SendEmailAsync(seller.Email, subject, body);
+            }
         }
+
         public async Task RejectNoteAsync(int noteId)
         {
             var note = await _repository.Where(n => n.Id == noteId).FirstOrDefaultAsync();
             if (note == null) throw new Exception("No notes were found to be rejected.");
+            
             note.IsActive = false;
             _repository.Update(note);
             await _unitOfWork.CommitAsync();
             _memoryCache.Remove("ApprovedNotesCache");
+
+            var seller = await _userManager.FindByIdAsync(note.SellerId.ToString());
+            if (seller != null)
+            {
+                string subject = "Update Regarding Your Note Submission";
+                string body = $@"
+                    <h2>Hello {seller.UserName},</h2>
+                    <p>Unfortunately, your note titled <b>'{note.Title}'</b> did not meet our marketplace guidelines and has been rejected.</p>
+                    <p>Please ensure your future submissions adhere to our content policy.</p>
+                    <br/>
+                    <p><b>Team Notla</b></p>";
+                await _emailService.SendEmailAsync(seller.Email, subject, body);
+            }
         }
+
         public async Task<List<NoteDto>> GetTrendingNotesAsync(int count = 10)
         {
             const string cacheKey = "TrendingNotesCache";
@@ -240,6 +282,7 @@ namespace Notla.Service.Services
 
             return trendingNotes;
         }
+
         public async Task<List<NoteDto>> GetMySellingNotesAsync(int sellerId)
         {
             var myNotes = await _repository
