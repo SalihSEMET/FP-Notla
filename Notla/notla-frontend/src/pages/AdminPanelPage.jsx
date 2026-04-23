@@ -183,9 +183,9 @@ function AdminPanelPage() {
                   <button
                     onClick={() => setPdfView(inspectNote.demoPdfUrl)}
                     disabled={!inspectNote.demoPdfUrl}
-                    className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-bold py-3 rounded-xl transition-colors border border-yellow-200 flex justify-center items-center gap-2"
+                    className={`font-bold py-3 rounded-xl transition-colors border flex justify-center items-center gap-2 ${inspectNote.demoPdfUrl ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
                   >
-                    📄 View Demo PDF
+                    📄 {inspectNote.demoPdfUrl ? 'View Demo PDF' : 'No Demo PDF'}
                   </button>
                   <button
                     onClick={() => setPdfView(inspectNote.originalPdfUrl)}

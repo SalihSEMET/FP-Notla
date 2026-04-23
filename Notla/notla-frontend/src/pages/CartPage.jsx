@@ -42,7 +42,8 @@ function CartPage() {
     }
   };
 
-  const handleRemoveItem = async (cartItemId) => {
+  const handleRemoveItem = async (e, cartItemId) => {
+    e.stopPropagation();
     const token = localStorage.getItem("notla_token");
     if (!token) return;
 
@@ -188,11 +189,15 @@ function CartPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 space-y-4">
           {cart.cartItems.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 relative pr-12 hover:shadow-md transition-shadow">
+            <div 
+              key={item.id} 
+              onClick={() => navigate(`/note/${item.noteId}`)}
+              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 relative pr-12 hover:shadow-md transition-shadow cursor-pointer"
+            >
               
               <button 
-                onClick={() => handleRemoveItem(item.id)}
-                className="absolute top-4 right-4 text-gray-300 hover:text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-full transition-colors font-bold text-lg"
+                onClick={(e) => handleRemoveItem(e, item.id)}
+                className="absolute top-4 right-4 text-gray-300 hover:text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-full transition-colors font-bold text-lg z-10"
                 title="Remove from cart"
               >
                 ✕
@@ -206,7 +211,7 @@ function CartPage() {
                 />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-800">{item.title}</h3>
+                <h3 className="text-lg font-bold text-gray-800 hover:text-blue-600 transition-colors">{item.title}</h3>
                 <span className="text-xl font-black text-blue-600">{item.price} TL</span>
               </div>
             </div>

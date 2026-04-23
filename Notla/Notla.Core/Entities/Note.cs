@@ -5,7 +5,7 @@ namespace Notla.Core.Entities
         public string Title { get; set; }
         public string Content { get; set; }
         public decimal? Price { get; set; }
-        public string DemoPdfUrl { get; set; }
+        public string? DemoPdfUrl { get; set; }
         public string OriginalPdfUrl { get; set; }
         public string? FileUrl { get; set; }
         public string? CoverImageUrl { get; set; }

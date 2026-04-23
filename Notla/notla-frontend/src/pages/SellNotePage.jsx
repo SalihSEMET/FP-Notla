@@ -183,7 +183,7 @@ function SellNotePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Sample Images (Max 15)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Sample Images (Min 1 , Max 15)</label>
                   <input
                     type="file"
                     accept="image/*"
@@ -197,11 +197,10 @@ function SellNotePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Demo PDF (Required)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Demo PDF (Optional)</label>
                   <input
                     type="file"
                     accept="application/pdf"
-                    required
                     onChange={(e) => setDemoPdf(e.target.files[0])}
                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 cursor-pointer"
                   />

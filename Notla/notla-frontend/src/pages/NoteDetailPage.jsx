@@ -177,11 +177,12 @@ function NoteDetailPage() {
   if (!note) return <div className="text-center py-20 text-2xl text-red-500">Note not found!</div>;
 
   const galleryImages = [];
-  if (note.coverImageUrl) galleryImages.push(`${backendUrl}${note.coverImageUrl}`);
-  else galleryImages.push("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
-
   if (note.sampleImageUrls && note.sampleImageUrls.length > 0) {
     note.sampleImageUrls.forEach(url => galleryImages.push(`${backendUrl}${url}`));
+  } else if (note.coverImageUrl) {
+    galleryImages.push(`${backendUrl}${note.coverImageUrl}`);
+  } else {
+    galleryImages.push("https://placehold.co/600x800/e2e8f0/475569?text=Note+Cover+Image");
   }
 
   return (

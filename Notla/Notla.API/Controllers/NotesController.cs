@@ -68,8 +68,13 @@ namespace Notla.API.Controllers
             
             int sellerId = int.Parse(userIdString);
             string coverImagePath = await _storageService.UploadFileAsync("images", noteDto.CoverImage);
-            string demoPdfPath = await _storageService.UploadFileAsync("pdfs", noteDto.DemoPdf);
             string originalPdfPath = await _storageService.UploadFileAsync("pdfs", noteDto.OriginalPdf);
+            string demoPdfPath = null;
+
+            if (noteDto.DemoPdf != null)
+            {
+                demoPdfPath = await _storageService.UploadFileAsync("pdfs", noteDto.DemoPdf);
+            }
 
             var newNote = new Note
             {

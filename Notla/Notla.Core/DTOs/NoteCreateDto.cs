@@ -9,7 +9,7 @@ namespace Notla.Core.DTOs
         public decimal? Price { get; set; }
         public int CategoryId { get; set; }
         public IFormFile CoverImage { get; set; }
-        public IFormFile DemoPdf { get; set; }
+        public IFormFile? DemoPdf { get; set; }
         public IFormFile OriginalPdf { get; set; }
         public List<IFormFile> SampleImages { get; set; }
     }
