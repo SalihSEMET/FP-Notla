@@ -314,5 +314,15 @@ namespace Notla.Service.Services
 
             return mappedNotes;
         }
+
+        public async Task<int> GetActiveNotesCountAsync(int sellerId)
+        {
+            return await _repository.Where(n => n.SellerId == sellerId && n.IsApproved).CountAsync();
+        }
+
+        public async Task<int> GetTotalViewsAsync(int sellerId)
+        {
+            return await _repository.Where(n => n.SellerId == sellerId).SumAsync(n => n.ViewCount);
+        }
     }
 }

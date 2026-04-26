@@ -13,6 +13,7 @@ import PublicSellerProfile from './pages/PublicSellerProfile';
 import FavoritesPage from './pages/FavoritesPage';
 import ForYouPage from './pages/ForYouPage';
 import AdminCategoryPage from './pages/AdminCategoryPage';
+import SellerDashboardPage from './pages/SellerDashboardPage';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/foryou" element={<ForYouPage />} />
           <Route path="/admin/categories" element={<AdminCategoryPage />} />
+          <Route path="/dashboard" element={<SellerDashboardPage />} />
         </Routes>
       </main>
     </div>

@@ -335,5 +335,29 @@ namespace Notla.Service.Services
             finalTotalAmount = itemPrices.Values.Sum();
             return finalTotalAmount;
         }
+
+        public async Task<decimal> GetTotalHistoricalEarningsAsync(int sellerId)
+        {
+            var orders = await _orderRepository.Where(o => true)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Note)
+                .ToListAsync();
+
+            decimal totalSales = orders.SelectMany(o => o.OrderItems)
+                                       .Where(oi => oi.Note != null && oi.Note.SellerId == sellerId)
+                                       .Sum(oi => oi.Price);
+
+            decimal commissionRate = 0.10m;
+            return totalSales * (1m - commissionRate);
+        }
+
+        public async Task<int> GetTotalSalesCountAsync(int sellerId)
+        {
+            var purchasedNotes = await _purchasedNoteRepository.Where(p => p.Note.SellerId == sellerId)
+                .Include(p => p.Note)
+                .ToListAsync();
+                
+            return purchasedNotes.Count;
+        }
     }
 }

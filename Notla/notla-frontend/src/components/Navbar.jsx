@@ -86,6 +86,14 @@ function Navbar() {
                   )}
 
                   <Link 
+                    to="/dashboard" 
+                    className="w-full text-left px-5 py-3 text-blue-700 font-bold hover:bg-blue-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                  >
+                    <span>📊</span>
+                    <span>Dashboard</span>
+                  </Link>
+
+                  <Link 
                     to="/sell-note" 
                     className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
                   >

@@ -5,8 +5,10 @@ namespace Notla.Core.Services
     public interface IOrderService
     {
         Task<OrderDto> CheckoutAsync(int userId, List<string>? discountCodes = null);
-        Task<List<OrderDto>> GetMyOrdersAsync(int userId);
         Task<List<LibraryItemDto>> GetMyLibraryAsync(int userId);
+        Task<List<OrderDto>> GetMyOrdersAsync(int userId);
         Task<decimal> PreviewDiscountAsync(int userId, List<string>? discountCodes = null);
+        Task<decimal> GetTotalHistoricalEarningsAsync(int sellerId);
+        Task<int> GetTotalSalesCountAsync(int sellerId);
     }
 }
