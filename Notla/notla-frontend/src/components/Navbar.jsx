@@ -1,9 +1,15 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
+import axios from 'axios';
 
 function Navbar() {
   const token = localStorage.getItem("notla_token");
   const location = useLocation();
+  const backendUrl = "http://localhost:5261";
+  
+  const [isSeller, setIsSeller] = useState(false);
+  
   let userName = null;
   let isAdmin = false;
 
@@ -20,6 +26,20 @@ function Navbar() {
       localStorage.removeItem("notla_token");
     }
   }
+
+  useEffect(() => {
+    if (token && userName) {
+      axios.get(`${backendUrl}/api/Notes/MySellingNotes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setIsSeller(true);
+        }
+      })
+      .catch(err => console.error(err));
+    }
+  }, [token, userName]);
 
   const handleLogout = () => {
     localStorage.removeItem("notla_token");
@@ -86,19 +106,11 @@ function Navbar() {
                   )}
 
                   <Link 
-                    to="/dashboard" 
-                    className="w-full text-left px-5 py-3 text-blue-700 font-bold hover:bg-blue-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                    to="/profile" 
+                    className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
                   >
-                    <span>📊</span>
-                    <span>Dashboard</span>
-                  </Link>
-
-                  <Link 
-                    to="/sell-note" 
-                    className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
-                  >
-                    <span>💸</span>
-                    <span>Sell Note</span>
+                    <span>👤</span>
+                    <span>My Profile</span>
                   </Link>
 
                   <Link 
@@ -110,19 +122,29 @@ function Navbar() {
                   </Link>
 
                   <Link 
-                    to="/profile" 
-                    className="w-full text-left px-5 py-3 text-gray-800 font-bold hover:bg-gray-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
-                  >
-                    <span>👤</span>
-                    <span>My Profile</span>
-                  </Link>
-
-                  <Link 
                     to="/favorites" 
                     className="w-full text-left px-5 py-3 text-rose-600 font-bold hover:bg-rose-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
                   >
                     <span>❤️</span>
                     <span>My Favorites</span>
+                  </Link>
+
+                  {isSeller && (
+                    <Link 
+                      to="/dashboard" 
+                      className="w-full text-left px-5 py-3 text-blue-700 font-bold hover:bg-blue-50 flex items-center space-x-2 transition-colors border-b border-gray-100 bg-slate-50"
+                    >
+                      <span>📊</span>
+                      <span>Dashboard</span>
+                    </Link>
+                  )}
+
+                  <Link 
+                    to="/sell-note" 
+                    className="w-full text-left px-5 py-3 text-green-700 font-bold hover:bg-green-50 flex items-center space-x-2 transition-colors border-b border-gray-100"
+                  >
+                    <span>💸</span>
+                    <span>Sell Note</span>
                   </Link>
 
                   <button
