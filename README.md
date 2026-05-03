@@ -1,7 +1,7 @@
 # 🚀 NOTLA. | The Ultimate Academic Note Marketplace
 
 <div align="center">
-  <img src="./notla-frontend/public/logo.png" alt="Notla Logo" width="120" height="120">
+  <img src="./Notla/notla-frontend/public/logo.png" alt="Notla Logo" width="120" height="120">
   <br/>
   <br/>
   <p>
