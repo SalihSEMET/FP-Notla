@@ -93,58 +93,71 @@ Follow these steps to set up the project locally for development and testing.
    ```bash
    git clone [https://github.com/SalihSEMET/FP-Notla.git](https://github.com/SalihSEMET/FP-Notla.git)
    cd Notla/Notla.API
-Update the appsettings.json file with your SQL Server connection string and SMTP details:
+   ```
 
-JSON
-"ConnectionStrings": {
-  "SqlConnection": "Server=.\\SQLEXPRESS;Database=NotlaDB;Trusted_Connection=True;TrustServerCertificate=True;"
-},
-"EmailSettings": {
-  "SmtpServer": "smtp.gmail.com",
-  "SmtpPort": 587,
-  "SenderEmail": "your-admin-email",
-  "SenderPassword": "your-app-password"
-}
-Apply database migrations to create the schema:
+2. Update the `appsettings.json` file with your SQL Server connection string and SMTP details:
+   ```json
+   "ConnectionStrings": {
+     "SqlConnection": "Server=.\\SQLEXPRESS;Database=NotlaDB;Trusted_Connection=True;TrustServerCertificate=True;"
+   },
+   "EmailSettings": {
+     "SmtpServer": "smtp.gmail.com",
+     "SmtpPort": 587,
+     "SenderEmail": "your-admin-email",
+     "SenderPassword": "your-app-password"
+   }
+   ```
 
-Bash
-dotnet ef database update --project ../Notla.Repository
-Run the API:
+3. Apply database migrations to create the schema:
+   ```bash
+   dotnet ef database update --project ../Notla.Repository
+   ```
 
-Bash
-dotnet run
-The API will typically run on http://localhost:5261.
+4. Run the API:
+   ```bash
+   dotnet run
+   ```
+   *The API will typically run on `http://localhost:5261`.*
 
-2. Frontend Setup (Client)
-Open a new terminal and navigate to the frontend directory:
+### 2. Frontend Setup (Client)
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd Notla/notla-frontend
+   ```
 
-Bash
-cd Notla/notla-frontend
-Install the required NPM packages:
+2. Install the required NPM packages:
+   ```bash
+   npm install
+   ```
 
-Bash
-npm install
-Start the Vite development server:
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   *The frontend will typically run on `http://localhost:5173`.*
 
-Bash
-npm run dev
-The frontend will typically run on http://localhost:5173.
+---
 
-🧹 Database Reset (Development Mode)
+## 🧹 Database Reset (Development Mode)
 If you need to completely wipe the database and start fresh for testing, run the following commands in the backend directory:
-
-Bash
+```bash
 dotnet ef database drop --project ../Notla.Repository
 dotnet ef database update --project ../Notla.Repository
-🤝 Contributing
-Contributions, issues, and feature requests are welcome!
+```
+
+---
+
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! 
 
 1. Fork the Project
-
-2. Create your Feature Branch (git checkout -b feature/AmazingFeature)
-
-3. Commit your Changes (git commit -m 'feat: Add some AmazingFeature')
-
-4. Push to the Branch (git push origin feature/AmazingFeature)
-
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+---
+
+<div align="center">
+  <p>Built with passion, caffeine, and clean code.</p>
+</div>
